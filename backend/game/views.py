@@ -121,6 +121,7 @@ def undo_place(request, game_id):
     ser = UndoSerializer(data=request.data)
     ser.is_valid(raise_exception=True)
     row = ser.validated_data['row']
+    card_id = ser.validated_data.get('card_id')
 
     player = game.players.filter(order=game.current_player_index).first()
     board = player.get_board()
@@ -128,8 +129,18 @@ def undo_place(request, game_id):
     if not board[row]:
         return Response({'error': 'この列にカードがありません'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # 最後のカードを手札に戻す
-    removed_card = board[row].pop()
+    # 特定のカードを指定された場合はそのカードを、なければ最後のカードを戻す
+    if card_id:
+        removed_card = None
+        for i, c in enumerate(board[row]):
+            if c['id'] == card_id:
+                removed_card = board[row].pop(i)
+                break
+        if not removed_card:
+            return Response({'error': 'カードが見つかりません'}, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        removed_card = board[row].pop()
+
     player.set_board(board)
     player.hand = player.hand + [removed_card]
     player.save()

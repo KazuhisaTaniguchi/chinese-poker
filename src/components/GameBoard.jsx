@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import PlayerBoard from './PlayerBoard.jsx';
 import OpponentPreview from './OpponentPreview.jsx';
 import HandArea from './HandArea.jsx';
@@ -10,9 +10,7 @@ export default function GameBoard({ state, actions, isPlacementDone }) {
   const opponents = state.players.filter((_, i) => i !== state.currentPlayerIndex);
   const isFantasyland = currentPlayer?.inFantasyland;
   const flBonus = currentPlayer?.fantasylandBonus || 0;
-  const isPineappleRound = state.roundNumber > 0 && !isFantasyland;
 
-  // FL時: 配布枚数 = 5 + bonus, 捨て枚数 = 配布 - 13
   const totalCards = 13;
   let cardsDealt, discardCount;
   if (isFantasyland) {
@@ -30,6 +28,9 @@ export default function GameBoard({ state, actions, isPlacementDone }) {
   const hasPlacedCards = handCount < cardsDealt;
   const isDiscardMode = isPlacementDone && discardCount > 0;
 
+  // ボードカード選択状態 { card, row }
+  const [selectedBoardCard, setSelectedBoardCard] = useState(null);
+
   const handleUndo = () => {
     const rows = ['bottom', 'middle', 'top'];
     for (const row of rows) {
@@ -40,19 +41,53 @@ export default function GameBoard({ state, actions, isPlacementDone }) {
     }
   };
 
-  // ドラッグ＆ドロップ: カード配置 (直接APIを呼ぶ)
+  // ボード上のカードをタップ (最後のカードのみ)
+  const handleBoardCardClick = useCallback((card, row) => {
+    if (selectedBoardCard?.card.id === card.id) {
+      setSelectedBoardCard(null); // 選択解除
+    } else {
+      setSelectedBoardCard({ card, row });
+      // 手札の選択を解除
+      actions.selectCard(null);
+    }
+  }, [selectedBoardCard, actions]);
+
+  // 列をタップ: ボードカード選択中 → 移動、手札カード選択中 → 配置
+  const handleRowClick = useCallback((targetRow) => {
+    if (selectedBoardCard) {
+      if (selectedBoardCard.row !== targetRow) {
+        actions.moveCard(selectedBoardCard.row, targetRow, selectedBoardCard.card.id);
+      }
+      setSelectedBoardCard(null);
+    } else {
+      actions.placeCard(targetRow);
+    }
+  }, [selectedBoardCard, actions]);
+
+  // 手札カード選択時、ボードカード選択を解除
+  const handleSelectCard = useCallback((cardId) => {
+    setSelectedBoardCard(null);
+    actions.selectCard(cardId);
+  }, [actions]);
+
+  // ドラッグ＆ドロップ
   const handleDragPlace = useCallback((card, row) => {
     actions.placeCardDirect(card.id, row);
   }, [actions]);
 
-  // ドラッグ＆ドロップ: undo
   const handleDragUndo = useCallback((row) => {
     actions.undoPlace(row);
+  }, [actions]);
+
+  // ボード→ボード移動 (ドラッグ)
+  const handleDragBoardToBoard = useCallback((card, sourceRow, targetRow) => {
+    actions.moveCard(sourceRow, targetRow, card.id);
   }, [actions]);
 
   const { dragging, handleHandDragStart, handleBoardDragStart } = useDragDrop({
     onPlaceCard: handleDragPlace,
     onUndoRow: handleDragUndo,
+    onMoveCard: handleDragBoardToBoard,
   });
 
   const totalRounds = isFantasyland ? 1 : 5;
@@ -60,7 +95,6 @@ export default function GameBoard({ state, actions, isPlacementDone }) {
 
   return (
     <div className="game-board fade-in">
-      {/* ヘッダー */}
       <div className="game-header">
         <span className="game-header-title">
           {isFantasyland ? '🌟 ファンタジーランド' : '♠ チャイポー'}
@@ -70,7 +104,6 @@ export default function GameBoard({ state, actions, isPlacementDone }) {
         </span>
       </div>
 
-      {/* ファンタジーランドバナー */}
       {isFantasyland && (
         <div className="fantasyland-banner">
           <span className="fl-icon">🌟</span>
@@ -80,36 +113,34 @@ export default function GameBoard({ state, actions, isPlacementDone }) {
         </div>
       )}
 
-      {/* 対戦相手プレビュー */}
       <OpponentPreview players={opponents} />
 
-      {/* 現在のプレイヤーのボード */}
       <PlayerBoard
         player={currentPlayer}
         selectedCard={state.selectedCard}
-        onPlaceCard={actions.placeCard}
+        selectedBoardCard={selectedBoardCard}
+        onPlaceCard={handleRowClick}
+        onBoardCardClick={handleBoardCardClick}
         isActive={true}
         onBoardDragStart={handleBoardDragStart}
       />
 
-      {/* 手札エリア */}
       <HandArea
         cards={currentPlayer.hand}
         selectedCard={state.selectedCard}
-        onSelectCard={actions.selectCard}
+        onSelectCard={handleSelectCard}
         isDiscardMode={isDiscardMode}
         discardCount={discardCount}
         isFantasyland={isFantasyland}
         onHandDragStart={handleHandDragStart}
       />
 
-      {/* アクションボタン */}
       <ActionButtons
         onConfirm={actions.confirmPlacement}
         onUndo={handleUndo}
         canConfirm={isPlacementDone}
         hasPlacedCards={hasPlacedCards}
-        selectedCard={state.selectedCard}
+        selectedCard={state.selectedCard || selectedBoardCard?.card}
         isDiscardMode={isDiscardMode}
         discardCount={discardCount}
       />

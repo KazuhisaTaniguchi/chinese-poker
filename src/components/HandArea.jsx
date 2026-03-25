@@ -21,15 +21,16 @@ function sortByRank(cards) {
 }
 
 export default function HandArea({ cards, selectedCard, onSelectCard, isDiscardMode, discardCount, isFantasyland, onHandDragStart }) {
-  const [sortMode, setSortMode] = useState('none'); // 'none' | 'suit' | 'rank'
-
-  if (!cards || cards.length === 0) return null;
+  const [sortMode, setSortMode] = useState('none');
 
   const sortedCards = useMemo(() => {
+    if (!cards || cards.length === 0) return [];
     if (sortMode === 'suit') return sortBySuit(cards);
     if (sortMode === 'rank') return sortByRank(cards);
     return cards;
   }, [cards, sortMode]);
+
+  if (!cards || cards.length === 0) return null;
 
   const label = isDiscardMode
     ? `🗑️ この${discardCount}枚が捨て札になります`

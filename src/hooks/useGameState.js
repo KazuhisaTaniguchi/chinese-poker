@@ -121,10 +121,32 @@ export function useGameState() {
       await apiCall(() => api.placeCard(state.gameId, cardId, row));
     }, [state.gameId, apiCall]),
 
-    undoPlace: useCallback(async (row) => {
+    undoPlace: useCallback(async (row, cardId = null) => {
       if (!state.gameId) return;
-      await apiCall(() => api.undoPlace(state.gameId, row));
+      await apiCall(() => api.undoPlace(state.gameId, row, cardId));
     }, [state.gameId, apiCall]),
+
+    // ボード行間移動: undo → place を連続実行
+    moveCard: useCallback(async (sourceRow, targetRow, cardId) => {
+      if (!state.gameId) return;
+      try {
+        setLoading(true);
+        // 1. 元の行から特定のカードを手札に戻す
+        await api.undoPlace(state.gameId, sourceRow, cardId);
+        // 2. 対象の行に配置
+        const result = await api.placeCard(state.gameId, cardId, targetRow);
+        setState(apiResponseToState(result));
+      } catch (err) {
+        console.error('moveCard Error:', err.message);
+        // 失敗した場合、最新状態を取得
+        try {
+          const result = await api.getGame(state.gameId);
+          setState(apiResponseToState(result));
+        } catch (_) {}
+      } finally {
+        setLoading(false);
+      }
+    }, [state.gameId]),
 
     confirmPlacement: useCallback(async () => {
       if (!state.gameId) return;

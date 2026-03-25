@@ -245,6 +245,26 @@
     border: 1px solid var(--light-gray);
 }
 
+.opponent-mini-card.hidden-card {
+    background: var(--light-gray);
+    border: 1px solid var(--gray);
+    color: var(--gray);
+}
+
+.fl-done-badge {
+    font-size: 0.65rem;
+    margin-left: auto;
+    margin-right: var(--sp-xs);
+}
+
+.fl-hidden-message {
+    text-align: center;
+    padding: var(--sp-xl);
+    color: var(--gray);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
 .opponent-mini-card.spade {
     color: #2D3436;
 }

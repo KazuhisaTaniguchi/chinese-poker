@@ -47,9 +47,11 @@ export function placeCard(gameId, cardId, row) {
   return request('POST', `/games/${gameId}/place/`, { card_id: cardId, row });
 }
 
-// 元に戻す
-export function undoPlace(gameId, row) {
-  return request('POST', `/games/${gameId}/undo/`, { row });
+// 元に戻す (card_id指定で特定カードを戻す)
+export function undoPlace(gameId, row, cardId = null) {
+  const body = { row };
+  if (cardId) body.card_id = cardId;
+  return request('POST', `/games/${gameId}/undo/`, body);
 }
 
 // 配置確定

@@ -47,3 +47,4 @@ class PlaceCardSerializer(serializers.Serializer):
 
 class UndoSerializer(serializers.Serializer):
     row = serializers.ChoiceField(choices=['top', 'middle', 'bottom'])
+    card_id = serializers.CharField(required=False, default=None)

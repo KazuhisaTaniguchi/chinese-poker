@@ -5,7 +5,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
  * - 手札カード → ボード列 : カード配置
  * - ボードカード → 手札エリア : 元に戻す
  */
-export default function useDragDrop({ onPlaceCard, onUndoRow }) {
+export default function useDragDrop({ onPlaceCard, onUndoRow, onMoveCard }) {
   const [dragging, setDragging] = useState(null); // { card, source: 'hand'|'board', row? }
   const ghostRef = useRef(null);
   const startPos = useRef({ x: 0, y: 0 });
@@ -113,6 +113,9 @@ export default function useDragDrop({ onPlaceCard, onUndoRow }) {
         } else if (dragging.source === 'board' && target === 'hand') {
           // ボード → 手札 (undo)
           onUndoRow(dragging.row);
+        } else if (dragging.source === 'board' && target && target !== 'hand' && target !== dragging.row) {
+          // ボード → 別のボード列 (移動)
+          onMoveCard(dragging.card, dragging.row, target);
         }
       }
 
