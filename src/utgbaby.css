@@ -1,0 +1,442 @@
+/* UTG.baby Neo-Brutalism Replica */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Oswald:wght@400;700&display=swap');
+
+:root {
+    /* Colors - UTG.baby replica */
+    --utg-bg: #f2f2f2;
+    --utg-black: #000000;
+    --utg-red: #e41b23;
+    --utg-yellow: #fcc800;
+    --utg-white: #ffffff;
+
+    /* Overriding existing variables */
+    --mint-bg: var(--utg-bg);
+    --soft-mint: var(--utg-white);
+    --white: var(--utg-white);
+    --dark: var(--utg-black);
+    --teal: var(--utg-black);
+    --teal-dark: var(--utg-black);
+    --gray: #555555;
+    --light-gray: #000000;
+    --coral-red: var(--utg-red);
+    --card-shadow: none;
+    --overlay: rgba(0, 0, 0, 0.7);
+
+    /* Typography */
+    --font-family: 'Noto Sans JP', sans-serif;
+    --font-heading: 'Oswald', 'Impact', sans-serif;
+
+    /* Brutalism specifics */
+    --brutalist-border: 4px solid var(--utg-black);
+    --brutalist-shadow: 4px 4px 0px var(--utg-black);
+    --brutalist-shadow-lg: 8px 8px 0px var(--utg-black);
+
+    --radius-full: 0;
+    --radius-xl: 0;
+    --radius-lg: 0;
+    --radius-md: 0;
+    --radius-sm: 0;
+}
+
+/* Global Typography Overrides */
+body {
+    font-family: var(--font-family) !important;
+    background-color: var(--utg-bg) !important;
+    color: var(--utg-black) !important;
+    font-weight: 700;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-heading) !important;
+    text-transform: uppercase;
+    font-weight: 900 !important;
+    letter-spacing: 0.05em;
+}
+
+/* Base Component Overrides - Brutalism */
+
+/* Buttons */
+.btn {
+    border: var(--brutalist-border) !important;
+    box-shadow: var(--brutalist-shadow) !important;
+    border-radius: 0 !important;
+    text-transform: uppercase;
+    font-family: var(--font-heading) !important;
+    font-weight: 900 !important;
+    transition: transform 0.1s, box-shadow 0.1s !important;
+}
+
+.btn:hover:not(:disabled) {
+    transform: translate(-2px, -2px) !important;
+    box-shadow: 6px 6px 0px var(--utg-black) !important;
+}
+
+.btn:active:not(:disabled) {
+    transform: translate(4px, 4px) !important;
+    box-shadow: 0px 0px 0px var(--utg-black) !important;
+}
+
+.btn-primary {
+    background: var(--utg-yellow) !important;
+    color: var(--utg-black) !important;
+}
+
+.btn-secondary,
+.btn-outline {
+    background: var(--utg-white) !important;
+    color: var(--utg-black) !important;
+    border: var(--brutalist-border) !important;
+}
+
+.btn-danger,
+.btn-discard {
+    background: var(--utg-red) !important;
+    color: var(--utg-white) !important;
+    border: var(--brutalist-border) !important;
+    box-shadow: var(--brutalist-shadow) !important;
+}
+
+/* Inputs / Form groups */
+input {
+    border: var(--brutalist-border) !important;
+    border-radius: 0 !important;
+    box-shadow: var(--brutalist-shadow) !important;
+    font-family: var(--font-family) !important;
+    font-weight: 700;
+}
+
+input:focus {
+    border-color: var(--utg-red) !important;
+    box-shadow: 4px 4px 0px var(--utg-red) !important;
+    transform: translate(-1px, -1px);
+}
+
+.lobby-create-form h2,
+.lobby-rooms h2 {
+    font-family: var(--font-heading) !important;
+}
+
+/* Cards & Board */
+.card {
+    border: 3px solid var(--utg-black) !important;
+    border-radius: 0 !important;
+    box-shadow: 3px 3px 0px var(--utg-black) !important;
+    background: var(--utg-white) !important;
+    transition: all 0.1s ease !important;
+}
+
+.card:not(.dimmed):not(.locked):hover {
+    transform: translate(-2px, -2px) !important;
+    box-shadow: 5px 5px 0px var(--utg-black) !important;
+}
+
+.card.selected {
+    border-color: var(--utg-red) !important;
+    background: var(--utg-yellow) !important;
+    transform: translate(-4px, -4px) !important;
+    box-shadow: 7px 7px 0px var(--utg-red) !important;
+}
+
+.card-slot {
+    background: var(--utg-bg) !important;
+    border: 3px dashed var(--utg-black) !important;
+    border-radius: 0 !important;
+}
+
+/* Custom Suit Colors */
+.spade {
+    color: var(--utg-black) !important;
+}
+
+.heart {
+    color: var(--utg-red) !important;
+}
+
+.diamond {
+    color: #007bff !important;
+}
+
+.club {
+    color: #00c853 !important;
+}
+
+/* Game Elements */
+.game-header {
+    background: var(--utg-black) !important;
+    color: var(--utg-white) !important;
+    border-bottom: var(--brutalist-border) !important;
+    box-shadow: 0px 4px 0px var(--utg-black) !important;
+    padding: 10px 16px !important;
+}
+
+.game-header-title {
+    color: var(--utg-bg) !important;
+    font-family: var(--font-heading) !important;
+    font-size: 1.4rem !important;
+    letter-spacing: 0.1em;
+}
+
+.opponent-preview,
+.board-row,
+.room-card,
+.result-item {
+    border: var(--brutalist-border) !important;
+    border-radius: 0 !important;
+    box-shadow: var(--brutalist-shadow) !important;
+    background: var(--utg-white) !important;
+    margin-bottom: 8px;
+}
+
+.board-row.can-place {
+    border: 4px dashed var(--utg-red) !important;
+}
+
+.opponent-mini-card {
+    border: 2px solid var(--utg-black) !important;
+    border-radius: 0 !important;
+    box-shadow: 1px 1px 0px var(--utg-black) !important;
+}
+
+.opponent-mini-card.hidden-card {
+    background: var(--utg-black) !important;
+    color: var(--utg-white) !important;
+    border-color: var(--utg-black) !important;
+}
+
+.modal-content {
+    border: 6px solid var(--utg-black) !important;
+    box-shadow: var(--brutalist-shadow-lg) !important;
+    border-radius: 0 !important;
+    background: var(--utg-white) !important;
+}
+
+/* Badges & Accents - UTG Style */
+.current-player-score,
+.opponent-score {
+    background: var(--utg-red) !important;
+    color: var(--utg-white) !important;
+    border: 2px solid var(--utg-black) !important;
+    border-radius: 0 !important;
+    box-shadow: 2px 2px 0px var(--utg-black) !important;
+    font-family: var(--font-heading) !important;
+    text-transform: uppercase;
+}
+
+.dealer-badge {
+    background: var(--utg-black) !important;
+    color: var(--utg-yellow) !important;
+    border: 2px solid var(--utg-black) !important;
+    border-radius: 0 !important;
+    box-shadow: 2px 2px 0px var(--utg-red) !important;
+    font-family: var(--font-heading) !important;
+    text-transform: uppercase;
+}
+
+.fl-badge {
+    background: var(--utg-yellow) !important;
+    color: var(--utg-black) !important;
+    border: 2px solid var(--utg-black) !important;
+    box-shadow: 2px 2px 0px var(--utg-black) !important;
+    transform: rotate(-3deg);
+    font-weight: 900 !important;
+}
+
+.title-logo h1 {
+    font-family: var(--font-heading) !important;
+    font-size: 4rem !important;
+    color: var(--utg-white) !important;
+    text-shadow:
+        -2px -2px 0 var(--utg-black),
+        2px -2px 0 var(--utg-black),
+        -2px 2px 0 var(--utg-black),
+        2px 2px 0 var(--utg-black),
+        6px 6px 0px var(--utg-red),
+        10px 10px 0px var(--utg-black) !important;
+    transform: rotate(-2deg);
+    margin-bottom: 20px;
+}
+
+.hand-area {
+    background: var(--utg-bg) !important;
+    border-top: var(--brutalist-border) !important;
+}
+
+.action-bar {
+    border-top: var(--brutalist-border) !important;
+    background: var(--utg-white) !important;
+}
+
+.lobby-title {
+    font-family: var(--font-heading) !important;
+    font-size: 2.5rem !important;
+    text-transform: uppercase;
+    color: var(--utg-white) !important;
+    text-shadow: -2px -2px 0 var(--utg-black), 2px -2px 0 var(--utg-black), -2px 2px 0 var(--utg-black), 2px 2px 0 var(--utg-black), 4px 4px 0px var(--utg-black) !important;
+    margin-bottom: 20px;
+}
+
+/* ==========================================================
+   TOURNAMENT PAGE STYLE ADAPTATIONS (https://utg.baby/tournament/10601)
+   ========================================================== */
+
+/* 1. Deep Stacking Shadows for main containers */
+.room-card,
+.result-item,
+.opponent-preview,
+.board-row {
+    border: 4px solid var(--utg-black) !important;
+    box-shadow: 8px 8px 0px var(--utg-black) !important;
+    background: var(--utg-white) !important;
+    margin-bottom: 20px !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+    /* Ensure internal backgrounds don't spill over */
+}
+
+/* 2. Tabular Yellow Headers (Structure Table Style) */
+.opponent-preview-header,
+.player-board-header {
+    background-color: var(--utg-yellow) !important;
+    border-bottom: 4px solid var(--utg-black) !important;
+    margin: -12px -12px 12px -12px !important;
+    /* Overriding default p-12 */
+    padding: 8px 12px !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.player-board-header {
+    margin: -12px -16px 16px -16px !important;
+    /* App.css padding is 12px 16px */
+    padding: 10px 16px !important;
+}
+
+/* 3. Sticker Slap (Pattern 3 Adaptation) */
+.room-card {
+    position: relative !important;
+    background: var(--utg-white) !important;
+    border: var(--brutalist-border) !important;
+    box-shadow: 8px 8px 0px var(--utg-black) !important;
+    padding: 32px 16px 16px 16px !important;
+    margin-top: 24px !important;
+    margin-bottom: 32px !important;
+    overflow: visible !important;
+    /* Allow stickers to pop out */
+    display: block !important;
+}
+
+.room-card-main {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.room-card-name {
+    position: absolute !important;
+    top: -16px !important;
+    left: -8px !important;
+    background: var(--utg-yellow) !important;
+    color: var(--utg-black) !important;
+    font-family: var(--font-heading) !important;
+    font-size: 1.3rem !important;
+    font-weight: 900 !important;
+    padding: 6px 14px !important;
+    border: 3px solid var(--utg-black) !important;
+    box-shadow: 4px 4px 0px var(--utg-black) !important;
+    transform: rotate(-3deg) !important;
+    white-space: nowrap !important;
+    max-width: 90%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 2;
+}
+
+.room-card-status {
+    font-family: var(--font-heading) !important;
+    font-weight: 900 !important;
+    font-size: 1rem !important;
+    color: var(--utg-black) !important;
+    background: transparent !important;
+    padding: 4px 0 !important;
+    margin-top: 8px !important;
+}
+
+/* Delete button as an angled sticker in the corner */
+.room-delete-btn {
+    position: absolute !important;
+    bottom: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    background: var(--utg-red) !important;
+    color: var(--utg-white) !important;
+    padding: 6px 12px !important;
+    font-weight: 900 !important;
+    font-size: 1rem !important;
+    border: 3px solid var(--utg-black) !important;
+    box-shadow: 3px 3px 0px var(--utg-black) !important;
+    transform: rotate(2deg) !important;
+    transition: all 0.1s !important;
+    z-index: 2;
+}
+
+.room-delete-btn:hover {
+    transform: rotate(0deg) scale(1.1) !important;
+    background: var(--utg-black) !important;
+    box-shadow: 5px 5px 0px var(--utg-red) !important;
+}
+
+/* ==========================================================
+   TOURNAMENT & MOBILE ADAPTATIONS
+   ========================================================== */
+@media screen and (max-width: 600px) {
+    .room-card {
+        padding-top: 44px !important;
+        margin-top: 32px !important;
+    }
+
+    .room-card-name {
+        font-size: 1.1rem !important;
+        padding: 4px 10px !important;
+        top: -12px !important;
+        left: -4px !important;
+        max-width: 85%;
+    }
+
+    .lobby-title {
+        font-size: 2rem !important;
+        text-shadow: -2px -2px 0 var(--utg-black), 2px -2px 0 var(--utg-black), -2px 2px 0 var(--utg-black), 2px 2px 0 var(--utg-black), 3px 3px 0px var(--utg-black) !important;
+    }
+
+    .btn {
+        padding: 12px 16px !important;
+        font-size: 0.95rem !important;
+    }
+
+    .opponent-preview-header,
+    .player-board-header {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .game-header-title {
+        font-size: 1.1rem !important;
+    }
+}
+
+/* 4. Action Buttons get Red Shadows like the Tournament Site */
+.btn-primary {
+    box-shadow: 6px 6px 0px var(--utg-red) !important;
+}
+
+.btn-primary:active {
+    box-shadow: 0px 0px 0px var(--utg-red) !important;
+}
