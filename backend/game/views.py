@@ -20,7 +20,17 @@ from rest_framework.permissions import AllowAny
 
 def _create_game_internal(player_names):
     """内部用: ゲーム作成ロジック (Room APIからも呼ばれる)"""
-    game = Game.objects.create(phase='placing', round_number=0, game_round=1)
+    import random
+    dealer_idx = random.randint(0, NUM_PLAYERS - 1)
+    start_idx = (dealer_idx + 1) % NUM_PLAYERS
+    
+    game = Game.objects.create(
+        phase='placing', 
+        round_number=0, 
+        game_round=1,
+        dealer_index=dealer_idx,
+        current_player_index=start_idx
+    )
 
     players = []
     for i, name in enumerate(player_names):
@@ -176,15 +186,12 @@ def _get_discard_count_for_player(player, game):
 
 
 def _get_next_player_index(game, current_index):
-    """次のプレイヤーを取得
-    - ボード完成済みプレイヤーをスキップ
-    - 非ファンタジーランドプレイヤーがまだ残っている場合、FLプレイヤーはスキップ
-    """
+    """次のプレイヤーを取得"""
     all_players = list(game.players.order_by('order'))
 
-    # 非ファンタジーランドプレイヤーで手札が残っている人がいるか
+    # 非ファンタジーランドプレイヤーでボード未完成の人がいるか
     non_fl_remaining = any(
-        p.hand and not p.in_fantasyland
+        not is_board_complete(p.get_board()) and not p.in_fantasyland
         for p in all_players
     )
 
@@ -192,11 +199,15 @@ def _get_next_player_index(game, current_index):
         next_idx = (current_index + i) % NUM_PLAYERS
         next_player = all_players[next_idx]
 
-        # ボード完成済みで手札なし → スキップ
-        if not next_player.hand and is_board_complete(next_player.get_board()):
+        # 手札がない（配置済み）ならスキップ
+        if not next_player.hand:
             continue
 
-        # 非ファンタジーランドがまだ残っているなら、FLプレイヤーは後回し
+        # ボード完成済みの人はスキップ
+        if is_board_complete(next_player.get_board()):
+            continue
+
+        # 通常プレイヤーがまだ未完成なら、FLプレイヤーはスキップ
         if non_fl_remaining and next_player.in_fantasyland:
             continue
 
@@ -231,15 +242,22 @@ def confirm_placement(request, game_id):
         player.save()
 
     # ファンタジーランドプレイヤーはこの時点でボード完成
-    if player.in_fantasyland:
-        player.in_fantasyland = False
-        player.fantasyland_bonus = 0
-        player.save()
+    # ※in_fantasylandフラグはラウンド終了時(継続判定)まで維持する
 
-    # 全プレイヤーの配置完了チェック
-    all_placed = all(not p.hand for p in game.players.all())
+    # サブラウンド完了(配られた手札を全員が置き終わったか)チェック
+    non_fl_playing = any(
+        not is_board_complete(p.get_board()) and not p.in_fantasyland
+        for p in game.players.all()
+    )
 
-    if not all_placed:
+    if non_fl_playing:
+        subround_complete = all(
+            not p.hand for p in game.players.all() if not p.in_fantasyland
+        )
+    else:
+        subround_complete = all(not p.hand for p in game.players.all())
+
+    if not subround_complete:
         # 次のプレイヤーへ
         next_idx = _get_next_player_index(game, game.current_player_index)
         game.current_player_index = next_idx
@@ -258,12 +276,25 @@ def confirm_placement(request, game_id):
         round_scores = calculate_scores(boards)
         game.round_scores = round_scores
 
+        from .logic.rules import check_fantasyland_qualification, check_fantasyland_continuation
         for i, p in enumerate(game.players.order_by('order')):
             p.total_score += round_scores[i]
 
+            was_in_fl = p.in_fantasyland
+            was_bonus = p.fantasyland_bonus
+            # 一旦リセット
+            p.in_fantasyland = False
+            p.fantasyland_bonus = 0
+
             # ファンタジーランド判定 (ファウルでない場合のみ)
             if not check_foul(p.get_board()):
-                bonus = check_fantasyland_qualification(p.board_top)
+                bonus = 0
+                if was_in_fl:
+                    if check_fantasyland_continuation(p.get_board()):
+                        bonus = was_bonus  # 継続時は前回のボーナス枚数を引き継ぐ
+                else:
+                    bonus = check_fantasyland_qualification(p.board_top)
+                    
                 if bonus > 0:
                     p.in_fantasyland = True
                     p.fantasyland_bonus = bonus
@@ -273,41 +304,42 @@ def confirm_placement(request, game_id):
         game.save()
         return Response(GameSerializer(game).data)
 
-    # 次のカード配布ラウンド
-    game.round_number += 1
-    remaining = game.deck
+    # 次のサブラウンド進行 または FLの手番開始
+    players_to_deal = [
+        p for p in game.players.order_by('order')
+        if not p.in_fantasyland and not is_board_complete(p.get_board())
+    ]
 
-    for p in game.players.order_by('order'):
-        # ファンタジーランドで既にボード完成済みならスキップ
-        if is_board_complete(p.get_board()):
-            continue
-        result = deal_cards(remaining, get_cards_to_deal(game.round_number))
-        p.hand = result['dealt']
-        # 現在のボードをロック (このターンで配置済みカードは移動不可に)
-        p.locked_board = p.get_board()
-        p.save()
-        remaining = result['remaining']
+    if players_to_deal:
+        game.round_number += 1
+        remaining = game.deck
+        for p in players_to_deal:
+            result = deal_cards(remaining, get_cards_to_deal(game.round_number))
+            p.hand = result['dealt']
+            p.locked_board = p.get_board()
+            p.save()
+            remaining = result['remaining']
+        game.deck = remaining
 
-    game.deck = remaining
-    # 非FLプレイヤーから開始、FLは最後
-    start_idx = game.dealer_index
+    # 非FLプレイヤーから開始、全員完了ならFLプレイヤーへ
+    start_idx = (game.dealer_index + 1) % NUM_PLAYERS
     found = False
-    # まず非FLプレイヤーを探す
     for i in range(NUM_PLAYERS):
-        idx = (game.dealer_index + i) % NUM_PLAYERS
+        idx = (game.dealer_index + 1 + i) % NUM_PLAYERS
         p = game.players.filter(order=idx).first()
-        if p and p.hand and not p.in_fantasyland:
+        if p and p.hand and not p.in_fantasyland and not is_board_complete(p.get_board()):
             start_idx = idx
             found = True
             break
-    # 非FLがいなければ手札ありのプレイヤーから
+            
     if not found:
         for i in range(NUM_PLAYERS):
-            idx = (game.dealer_index + i) % NUM_PLAYERS
+            idx = (game.dealer_index + 1 + i) % NUM_PLAYERS
             p = game.players.filter(order=idx).first()
-            if p and p.hand:
+            if p and p.hand and not is_board_complete(p.get_board()):
                 start_idx = idx
                 break
+
     game.current_player_index = start_idx
     game.phase = 'placing'
     game.save()
@@ -342,7 +374,10 @@ def next_round(request, game_id):
 
     # デッキリセット
     deck = shuffle_deck(create_deck())
-    game.dealer_index = (game.dealer_index + 1) % NUM_PLAYERS
+    # ファンタジーランドプレイヤーがいない場合のみディーラーボタンを回す
+    any_fl = any(p.in_fantasyland for p in game.players.all())
+    if not any_fl:
+        game.dealer_index = (game.dealer_index + 1) % NUM_PLAYERS
     game.round_number = 0
     game.game_round += 1
     game.round_scores = []
@@ -353,6 +388,7 @@ def next_round(request, game_id):
         player.board_top = []
         player.board_middle = []
         player.board_bottom = []
+        player.locked_board = {'top': [], 'middle': [], 'bottom': []}
 
         if player.in_fantasyland:
             # ファンタジーランド: 全カードを一度に配布
@@ -369,11 +405,11 @@ def next_round(request, game_id):
     game.deck = remaining
 
     # 非ファンタジーランドプレイヤーから開始（FLプレイヤーは最後）
-    start_idx = game.dealer_index
+    start_idx = (game.dealer_index + 1) % NUM_PLAYERS
     # まず非FLプレイヤーを探す
     found_non_fl = False
     for i in range(NUM_PLAYERS):
-        idx = (game.dealer_index + i) % NUM_PLAYERS
+        idx = (game.dealer_index + 1 + i) % NUM_PLAYERS
         p = game.players.filter(order=idx).first()
         if p and p.hand and not p.in_fantasyland:
             start_idx = idx
@@ -383,7 +419,7 @@ def next_round(request, game_id):
     # 非FLがいなければFLプレイヤーから
     if not found_non_fl:
         for i in range(NUM_PLAYERS):
-            idx = (game.dealer_index + i) % NUM_PLAYERS
+            idx = (game.dealer_index + 1 + i) % NUM_PLAYERS
             p = game.players.filter(order=idx).first()
             if p and p.hand:
                 start_idx = idx

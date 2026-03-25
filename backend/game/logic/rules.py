@@ -87,6 +87,25 @@ def check_fantasyland_qualification(top_cards):
     return 0
 
 
+def check_fantasyland_continuation(board):
+    """ファンタジーランド継続判定
+    - ボトムがフォーカード (rank >= 7) 以上
+    - またはトップがスリーカード (rank == 3)
+    を満たせば継続 (True) を返す
+    """
+    from .hand import evaluate_hand
+    
+    bottom_eval = evaluate_hand(board.get('bottom', []))
+    if bottom_eval['rank'] >= 7:
+        return True
+
+    top_eval = evaluate_hand(board.get('top', []))
+    if top_eval['rank'] == 3:
+        return True
+
+    return False
+
+
 def get_fantasyland_total_cards(bonus):
     """ファンタジーランドの合計カード枚数"""
     return INITIAL_DEAL + bonus

@@ -29,15 +29,15 @@ function MiniCard({ card, hidden }) {
   );
 }
 
-export default function OpponentPreview({ players }) {
+export default function OpponentPreview({ players, dealerIndex }) {
   const [expandedPlayer, setExpandedPlayer] = useState(null);
 
   return (
     <>
       <div className="opponents-row">
         {players.map(player => {
-          // ボード完成済み = FL完了 → カードを隠す
-          const hideCards = isBoardComplete(player.board);
+          // FLプレイヤーは配置確定前（手札が残っている間）だけ隠す
+          const hideCards = player.inFantasyland && player.hand && player.hand.length > 0;
 
           return (
             <div
@@ -46,7 +46,10 @@ export default function OpponentPreview({ players }) {
               onClick={() => setExpandedPlayer(player)}
             >
               <div className="opponent-preview-header">
-                <span className="opponent-name">{player.name}</span>
+                <div className="opponent-name-group">
+                  <span className="opponent-name">{player.name}</span>
+                  {Number(player.id) === Number(dealerIndex) && <span className="dealer-badge">DEALER</span>}
+                </div>
                 {hideCards && <span className="fl-done-badge">🔒</span>}
                 <span className="opponent-score">{player.totalScore}</span>
               </div>
@@ -65,7 +68,7 @@ export default function OpponentPreview({ players }) {
       </div>
 
       {expandedPlayer && (() => {
-        const hideCards = isBoardComplete(expandedPlayer.board);
+        const hideCards = expandedPlayer.inFantasyland && expandedPlayer.hand && expandedPlayer.hand.length > 0;
         return (
           <div className="modal-overlay" onClick={() => setExpandedPlayer(null)}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>

@@ -219,9 +219,11 @@ export default function RoundResult({ players, roundScores, onNextRound, onEndGa
         <button className="btn btn-primary" onClick={onNextRound} id="next-round-btn">
           次のラウンドへ
         </button>
-        <button className="btn btn-danger" onClick={onEndGame} id="end-game-btn">
-          ゲーム終了
-        </button>
+        {!hasFantasyland && (
+          <button className="btn btn-danger" onClick={onEndGame} id="end-game-btn">
+            ゲーム終了
+          </button>
+        )}
       </div>
     </div>
   );

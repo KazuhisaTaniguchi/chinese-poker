@@ -7,7 +7,7 @@ import { canPlaceCard } from '../game/rules.js';
 const ROW_LABELS = { top: 'Top (3)', middle: 'Middle (5)', bottom: 'Bottom (5)' };
 const ROWS = ['top', 'middle', 'bottom'];
 
-export default function PlayerBoard({ player, selectedCard, selectedBoardCard, onPlaceCard, onBoardCardClick, isActive, onBoardDragStart }) {
+export default function PlayerBoard({ player, selectedCard, selectedBoardCard, onPlaceCard, onBoardCardClick, isActive, onBoardDragStart, dealerIndex }) {
   // ロック済みカードIDのセットを計算
   const lockedIds = useMemo(() => {
     const ids = new Set();
@@ -23,7 +23,10 @@ export default function PlayerBoard({ player, selectedCard, selectedBoardCard, o
   return (
     <div className="player-board-section">
       <div className="player-board-header">
-        <span className="current-player-name">{player.name}</span>
+        <div className="player-name-group">
+          <span className="current-player-name">{player.name}</span>
+          {Number(player.id) === Number(dealerIndex) && <span className="dealer-badge">DEALER</span>}
+        </div>
         <span className="current-player-score">{player.totalScore} pts</span>
       </div>
       <div className="board-rows">

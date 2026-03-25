@@ -113,7 +113,7 @@ export default function GameBoard({ state, actions, isPlacementDone }) {
         </div>
       )}
 
-      <OpponentPreview players={opponents} />
+      <OpponentPreview players={opponents} dealerIndex={state.dealerIndex} />
 
       <PlayerBoard
         player={currentPlayer}
@@ -123,6 +123,7 @@ export default function GameBoard({ state, actions, isPlacementDone }) {
         onBoardCardClick={handleBoardCardClick}
         isActive={true}
         onBoardDragStart={handleBoardDragStart}
+        dealerIndex={state.dealerIndex}
       />
 
       <HandArea

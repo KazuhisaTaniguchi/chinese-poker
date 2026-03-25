@@ -35,7 +35,7 @@ export default function GamePlayPage({ user }) {
 
         // API response → local state
         const players = game.players.map(p => ({
-          id: p.id,
+          id: p.order,
           name: p.name,
           hand: p.hand || [],
           board: p.board || { top: [], middle: [], bottom: [] },
@@ -53,6 +53,7 @@ export default function GamePlayPage({ user }) {
           roundNumber: game.round_number,
           gameRound: game.game_round,
           roundScores: game.round_scores || [],
+          dealerIndex: game.dealer_index,
           selectedCard: null,
         });
       }
@@ -224,11 +225,18 @@ export default function GamePlayPage({ user }) {
     </>
   );
 
+  // ディーラー名
+  const dealerPlayer = gameState.players[gameState.dealerIndex];
+  const dealerName = dealerPlayer?.name || '';
+
   // 自分のターンでない場合の待機画面
   if (gameState.phase === 'placing' && !isMyTurn) {
     return (
       <div className="waiting-screen">
         {hamburgerMenu}
+        <div className="dealer-info-bar">
+          <span className="dealer-badge">DEALER</span> {dealerName}
+        </div>
         <div className="waiting-icon">⏳</div>
         <h2>{gameState.players[gameState.currentPlayerIndex]?.name} のターン中...</h2>
         <p>しばらくお待ちください</p>
@@ -245,6 +253,9 @@ export default function GamePlayPage({ user }) {
     return (
       <div className="waiting-screen">
         {hamburgerMenu}
+        <div className="dealer-info-bar">
+          <span className="dealer-badge">DEALER</span> {dealerName}
+        </div>
         <div className="waiting-icon">🔄</div>
         <h2>ターン切替中...</h2>
       </div>
