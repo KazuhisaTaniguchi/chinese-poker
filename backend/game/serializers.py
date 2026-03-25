@@ -14,7 +14,7 @@ class PlayerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Player
         fields = ['id', 'name', 'order', 'hand', 'board', 'total_score',
-                  'in_fantasyland', 'fantasyland_bonus']
+                  'in_fantasyland', 'fantasyland_bonus', 'locked_board']
 
     def get_board(self, obj):
         return obj.get_board()

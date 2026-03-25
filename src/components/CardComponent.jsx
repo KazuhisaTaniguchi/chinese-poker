@@ -1,7 +1,7 @@
 import React from 'react';
 import { SUIT_COLORS } from '../game/deck.js';
 
-export default function CardComponent({ card, selectable, selected, onClick, dimmed, compact, draggableHand, draggableBoard, onDragStart }) {
+export default function CardComponent({ card, selectable, selected, onClick, dimmed, compact, locked, draggableHand, draggableBoard, onDragStart }) {
   if (!card) {
     return <div className="card-slot" />;
   }
@@ -15,6 +15,7 @@ export default function CardComponent({ card, selectable, selected, onClick, dim
     selected && 'selected',
     dimmed && 'dimmed',
     compact && 'compact',
+    locked && 'locked',
     isDraggable && 'draggable'
   ].filter(Boolean).join(' ');
 

@@ -11,7 +11,17 @@ async function request(method, path, body = null) {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
   };
+
+  // CSRFトークン取得
+  const csrfToken = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrftoken='))
+    ?.split('=')[1];
+  if (csrfToken) {
+    options.headers['X-CSRFToken'] = csrfToken;
+  }
 
   if (body) {
     options.body = JSON.stringify(body);

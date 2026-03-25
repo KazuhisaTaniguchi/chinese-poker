@@ -1,5 +1,5 @@
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from .models import Game, Player
 from .serializers import (
@@ -15,9 +15,36 @@ from .logic.rules import (
     NUM_PLAYERS,
 )
 from .logic.scoring import calculate_scores, check_foul, calculate_royalties
+from rest_framework.permissions import AllowAny
+
+
+def _create_game_internal(player_names):
+    """内部用: ゲーム作成ロジック (Room APIからも呼ばれる)"""
+    game = Game.objects.create(phase='placing', round_number=0, game_round=1)
+
+    players = []
+    for i, name in enumerate(player_names):
+        players.append(Player.objects.create(
+            game=game, name=name, order=i
+        ))
+
+    deck = shuffle_deck(create_deck())
+    remaining = deck
+    for player in players:
+        result = deal_cards(remaining, 5)
+        player.hand = result['dealt']
+        # 初回ターン: ボードは空なのでロック状態も空
+        player.locked_board = {'top': [], 'middle': [], 'bottom': []}
+        player.save()
+        remaining = result['remaining']
+
+    game.deck = remaining
+    game.save()
+    return game
 
 
 @api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
 def game_list(request):
     """GET: セーブ一覧, POST: 新規ゲーム作成"""
     if request.method == 'GET':
@@ -25,32 +52,11 @@ def game_list(request):
         serializer = GameSerializer(games, many=True)
         return Response(serializer.data)
 
-    # POST: 新規ゲーム作成
     ser = GameCreateSerializer(data=request.data)
     ser.is_valid(raise_exception=True)
     player_names = ser.validated_data['player_names']
 
-    # ゲーム作成
-    game = Game.objects.create(phase='placing', round_number=0, game_round=1)
-
-    # プレイヤー作成
-    players = []
-    for i, name in enumerate(player_names):
-        players.append(Player.objects.create(
-            game=game, name=name, order=i
-        ))
-
-    # デッキ生成・シャッフル・配布
-    deck = shuffle_deck(create_deck())
-    remaining = deck
-    for player in players:
-        result = deal_cards(remaining, 5)
-        player.hand = result['dealt']
-        player.save()
-        remaining = result['remaining']
-
-    game.deck = remaining
-    game.save()
+    game = _create_game_internal(player_names)
 
     return Response(GameSerializer(game).data, status=status.HTTP_201_CREATED)
 
@@ -129,8 +135,18 @@ def undo_place(request, game_id):
     if not board[row]:
         return Response({'error': 'この列にカードがありません'}, status=status.HTTP_400_BAD_REQUEST)
 
+    # ロック済みカードのIDセット
+    locked = player.locked_board or {'top': [], 'middle': [], 'bottom': []}
+    locked_ids = set()
+    for r in ['top', 'middle', 'bottom']:
+        for c in locked.get(r, []):
+            locked_ids.add(c['id'])
+
     # 特定のカードを指定された場合はそのカードを、なければ最後のカードを戻す
     if card_id:
+        # ロック済みカードは移動不可
+        if card_id in locked_ids:
+            return Response({'error': 'このカードは前のターンで配置済みのため動かせません'}, status=status.HTTP_400_BAD_REQUEST)
         removed_card = None
         for i, c in enumerate(board[row]):
             if c['id'] == card_id:
@@ -139,6 +155,10 @@ def undo_place(request, game_id):
         if not removed_card:
             return Response({'error': 'カードが見つかりません'}, status=status.HTTP_400_BAD_REQUEST)
     else:
+        # 最後のカードがロック済みかチェック
+        last_card = board[row][-1]
+        if last_card['id'] in locked_ids:
+            return Response({'error': 'このカードは前のターンで配置済みのため動かせません'}, status=status.HTTP_400_BAD_REQUEST)
         removed_card = board[row].pop()
 
     player.set_board(board)
@@ -246,6 +266,8 @@ def confirm_placement(request, game_id):
             continue
         result = deal_cards(remaining, get_cards_to_deal(game.round_number))
         p.hand = result['dealt']
+        # 現在のボードをロック (このターンで配置済みカードは移動不可に)
+        p.locked_board = p.get_board()
         p.save()
         remaining = result['remaining']
 

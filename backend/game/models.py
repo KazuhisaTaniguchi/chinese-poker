@@ -55,6 +55,7 @@ class Player(models.Model):
     total_score = models.IntegerField(default=0)
     in_fantasyland = models.BooleanField(default=False)
     fantasyland_bonus = models.IntegerField(default=0)  # 0,9,10,11,12
+    locked_board = models.JSONField(default=dict)  # ターン開始時のボード状態
 
     class Meta:
         ordering = ['order']

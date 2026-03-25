@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import CardComponent from './CardComponent.jsx';
 import { ROW_LIMITS } from '../game/rules.js';
 import { evaluateHand, getHandName } from '../game/hand.js';
@@ -8,6 +8,18 @@ const ROW_LABELS = { top: 'Top (3)', middle: 'Middle (5)', bottom: 'Bottom (5)' 
 const ROWS = ['top', 'middle', 'bottom'];
 
 export default function PlayerBoard({ player, selectedCard, selectedBoardCard, onPlaceCard, onBoardCardClick, isActive, onBoardDragStart }) {
+  // ロック済みカードIDのセットを計算
+  const lockedIds = useMemo(() => {
+    const ids = new Set();
+    const locked = player.lockedBoard || { top: [], middle: [], bottom: [] };
+    for (const row of ['top', 'middle', 'bottom']) {
+      for (const c of (locked[row] || [])) {
+        ids.add(c.id);
+      }
+    }
+    return ids;
+  }, [player.lockedBoard]);
+
   return (
     <div className="player-board-section">
       <div className="player-board-header">
@@ -44,19 +56,21 @@ export default function PlayerBoard({ player, selectedCard, selectedBoardCard, o
                 {Array.from({ length: limit }).map((_, i) => {
                   const card = cards[i] || null;
                   const hasCard = !!card;
+                  const isLocked = hasCard && lockedIds.has(card.id);
                   const isBoardSelected = selectedBoardCard?.card.id === card?.id;
                   return (
                     <CardComponent
                       key={i}
                       card={card}
                       selected={isBoardSelected}
-                      selectable={hasCard && isActive}
-                      onClick={hasCard && isActive ? (e) => {
+                      selectable={hasCard && isActive && !isLocked}
+                      locked={isLocked}
+                      onClick={hasCard && isActive && !isLocked ? (e) => {
                         e.stopPropagation();
                         onBoardCardClick(card, row);
                       } : undefined}
-                      draggableBoard={hasCard && isActive}
-                      onDragStart={hasCard ? (e) => onBoardDragStart(card, row, e) : undefined}
+                      draggableBoard={hasCard && isActive && !isLocked}
+                      onDragStart={hasCard && !isLocked ? (e) => onBoardDragStart(card, row, e) : undefined}
                     />
                   );
                 })}
@@ -68,3 +82,4 @@ export default function PlayerBoard({ player, selectedCard, selectedBoardCard, o
     </div>
   );
 }
+

@@ -27,6 +27,7 @@ function apiResponseToState(data) {
       totalScore: p.total_score,
       inFantasyland: p.in_fantasyland,
       fantasylandBonus: p.fantasyland_bonus,
+      lockedBoard: p.locked_board || { top: [], middle: [], bottom: [] },
     })),
     currentPlayerIndex: data.current_player_index,
     roundNumber: data.round_number,
