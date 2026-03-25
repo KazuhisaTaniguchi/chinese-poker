@@ -1,0 +1,334 @@
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .models import Game, Player
+from .serializers import (
+    GameSerializer, GameCreateSerializer,
+    PlaceCardSerializer, UndoSerializer,
+)
+from .logic.deck import create_deck, shuffle_deck, deal_cards
+from .logic.rules import (
+    can_place_card, is_board_complete,
+    get_cards_to_deal, get_cards_to_discard,
+    check_fantasyland_qualification, get_fantasyland_total_cards,
+    get_fantasyland_discard_count, TOTAL_CARDS,
+    NUM_PLAYERS,
+)
+from .logic.scoring import calculate_scores, check_foul, calculate_royalties
+
+
+@api_view(['GET', 'POST'])
+def game_list(request):
+    """GET: セーブ一覧, POST: 新規ゲーム作成"""
+    if request.method == 'GET':
+        games = Game.objects.exclude(phase='game_over')[:10]
+        serializer = GameSerializer(games, many=True)
+        return Response(serializer.data)
+
+    # POST: 新規ゲーム作成
+    ser = GameCreateSerializer(data=request.data)
+    ser.is_valid(raise_exception=True)
+    player_names = ser.validated_data['player_names']
+
+    # ゲーム作成
+    game = Game.objects.create(phase='placing', round_number=0, game_round=1)
+
+    # プレイヤー作成
+    players = []
+    for i, name in enumerate(player_names):
+        players.append(Player.objects.create(
+            game=game, name=name, order=i
+        ))
+
+    # デッキ生成・シャッフル・配布
+    deck = shuffle_deck(create_deck())
+    remaining = deck
+    for player in players:
+        result = deal_cards(remaining, 5)
+        player.hand = result['dealt']
+        player.save()
+        remaining = result['remaining']
+
+    game.deck = remaining
+    game.save()
+
+    return Response(GameSerializer(game).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+def game_detail(request, game_id):
+    """ゲーム状態取得"""
+    try:
+        game = Game.objects.get(id=game_id)
+    except Game.DoesNotExist:
+        return Response({'error': 'ゲームが見つかりません'}, status=status.HTTP_404_NOT_FOUND)
+
+    return Response(GameSerializer(game).data)
+
+
+@api_view(['POST'])
+def place_card(request, game_id):
+    """カード配置"""
+    try:
+        game = Game.objects.get(id=game_id)
+    except Game.DoesNotExist:
+        return Response({'error': 'ゲームが見つかりません'}, status=status.HTTP_404_NOT_FOUND)
+
+    if game.phase != 'placing':
+        return Response({'error': '配置フェーズではありません'}, status=status.HTTP_400_BAD_REQUEST)
+
+    ser = PlaceCardSerializer(data=request.data)
+    ser.is_valid(raise_exception=True)
+    card_id = ser.validated_data['card_id']
+    row = ser.validated_data['row']
+
+    player = game.players.filter(order=game.current_player_index).first()
+    if not player:
+        return Response({'error': 'プレイヤーが見つかりません'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 手札からカードを探す
+    card = None
+    for c in player.hand:
+        if c['id'] == card_id:
+            card = c
+            break
+
+    if not card:
+        return Response({'error': 'カードが見つかりません'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 配置可能か確認
+    board = player.get_board()
+    if not can_place_card(board, row):
+        return Response({'error': 'この列は満杯です'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 配置
+    board[row].append(card)
+    player.set_board(board)
+    player.hand = [c for c in player.hand if c['id'] != card_id]
+    player.save()
+
+    return Response(GameSerializer(game).data)
+
+
+@api_view(['POST'])
+def undo_place(request, game_id):
+    """配置を元に戻す"""
+    try:
+        game = Game.objects.get(id=game_id)
+    except Game.DoesNotExist:
+        return Response({'error': 'ゲームが見つかりません'}, status=status.HTTP_404_NOT_FOUND)
+
+    ser = UndoSerializer(data=request.data)
+    ser.is_valid(raise_exception=True)
+    row = ser.validated_data['row']
+
+    player = game.players.filter(order=game.current_player_index).first()
+    board = player.get_board()
+
+    if not board[row]:
+        return Response({'error': 'この列にカードがありません'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 最後のカードを手札に戻す
+    removed_card = board[row].pop()
+    player.set_board(board)
+    player.hand = player.hand + [removed_card]
+    player.save()
+
+    return Response(GameSerializer(game).data)
+
+
+def _get_discard_count_for_player(player, game):
+    """プレイヤーの現在の捨て札枚数を取得"""
+    if player.in_fantasyland:
+        return get_fantasyland_discard_count(player.fantasyland_bonus)
+    return get_cards_to_discard(game.round_number)
+
+
+def _get_next_player_index(game, current_index):
+    """次のプレイヤーを取得（ファンタジーランドで完了済みのプレイヤーをスキップ）"""
+    for i in range(1, NUM_PLAYERS + 1):
+        next_idx = (current_index + i) % NUM_PLAYERS
+        next_player = game.players.filter(order=next_idx).first()
+        # ファンタジーランドプレイヤーでボード完成済みなら手札が空 → スキップ
+        if next_player and not next_player.hand:
+            if is_board_complete(next_player.get_board()):
+                continue
+        return next_idx
+    return (current_index + 1) % NUM_PLAYERS
+
+
+@api_view(['POST'])
+def confirm_placement(request, game_id):
+    """配置確定 → ターン進行 (パイナップルOFC + ファンタジーランド対応)"""
+    try:
+        game = Game.objects.get(id=game_id)
+    except Game.DoesNotExist:
+        return Response({'error': 'ゲームが見つかりません'}, status=status.HTTP_404_NOT_FOUND)
+
+    player = game.players.filter(order=game.current_player_index).first()
+    discard_count = _get_discard_count_for_player(player, game)
+
+    # 手札残り枚数が捨て札枚数と一致しているか
+    if len(player.hand) != discard_count:
+        placed = sum(len(v) for v in player.get_board().values())
+        remaining_to_place = TOTAL_CARDS - placed
+        return Response(
+            {'error': f'あと{remaining_to_place}枚配置してください'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # 捨て札を処理
+    if discard_count > 0:
+        player.hand = []
+        player.save()
+
+    # ファンタジーランドプレイヤーはこの時点でボード完成
+    if player.in_fantasyland:
+        player.in_fantasyland = False
+        player.fantasyland_bonus = 0
+        player.save()
+
+    # 全プレイヤーの配置完了チェック
+    all_placed = all(not p.hand for p in game.players.all())
+
+    if not all_placed:
+        # 次のプレイヤーへ
+        next_idx = _get_next_player_index(game, game.current_player_index)
+        game.current_player_index = next_idx
+        game.phase = 'turn_switch'
+        game.save()
+        return Response(GameSerializer(game).data)
+
+    # 全員完了 → ボード埋まりチェック
+    all_complete = all(
+        is_board_complete(p.get_board()) for p in game.players.all()
+    )
+
+    if all_complete:
+        # ラウンド終了 → スコア計算 + ファンタジーランド判定
+        boards = game.get_all_boards()
+        round_scores = calculate_scores(boards)
+        game.round_scores = round_scores
+
+        for i, p in enumerate(game.players.order_by('order')):
+            p.total_score += round_scores[i]
+
+            # ファンタジーランド判定 (ファウルでない場合のみ)
+            if not check_foul(p.get_board()):
+                bonus = check_fantasyland_qualification(p.board_top)
+                if bonus > 0:
+                    p.in_fantasyland = True
+                    p.fantasyland_bonus = bonus
+            p.save()
+
+        game.phase = 'round_result'
+        game.save()
+        return Response(GameSerializer(game).data)
+
+    # 次のカード配布ラウンド
+    game.round_number += 1
+    remaining = game.deck
+
+    for p in game.players.order_by('order'):
+        # ファンタジーランドで既にボード完成済みならスキップ
+        if is_board_complete(p.get_board()):
+            continue
+        result = deal_cards(remaining, get_cards_to_deal(game.round_number))
+        p.hand = result['dealt']
+        p.save()
+        remaining = result['remaining']
+
+    game.deck = remaining
+    # ディーラーから開始、ただしボード完成済みならスキップ
+    start_idx = game.dealer_index
+    for i in range(NUM_PLAYERS):
+        idx = (start_idx + i) % NUM_PLAYERS
+        p = game.players.filter(order=idx).first()
+        if p and p.hand:
+            start_idx = idx
+            break
+    game.current_player_index = start_idx
+    game.phase = 'placing'
+    game.save()
+
+    return Response(GameSerializer(game).data)
+
+
+@api_view(['POST'])
+def confirm_turn_switch(request, game_id):
+    """ターン切替確認 → プレイ画面へ"""
+    try:
+        game = Game.objects.get(id=game_id)
+    except Game.DoesNotExist:
+        return Response({'error': 'ゲームが見つかりません'}, status=status.HTTP_404_NOT_FOUND)
+
+    if game.phase != 'turn_switch':
+        return Response({'error': 'ターン切替フェーズではありません'}, status=status.HTTP_400_BAD_REQUEST)
+
+    game.phase = 'placing'
+    game.save()
+
+    return Response(GameSerializer(game).data)
+
+
+@api_view(['POST'])
+def next_round(request, game_id):
+    """次ラウンド開始 (ファンタジーランド対応)"""
+    try:
+        game = Game.objects.get(id=game_id)
+    except Game.DoesNotExist:
+        return Response({'error': 'ゲームが見つかりません'}, status=status.HTTP_404_NOT_FOUND)
+
+    # デッキリセット
+    deck = shuffle_deck(create_deck())
+    game.dealer_index = (game.dealer_index + 1) % NUM_PLAYERS
+    game.round_number = 0
+    game.game_round += 1
+    game.round_scores = []
+
+    # プレイヤーのボード・手札リセット & カード配布
+    remaining = deck
+    for player in game.players.order_by('order'):
+        player.board_top = []
+        player.board_middle = []
+        player.board_bottom = []
+
+        if player.in_fantasyland:
+            # ファンタジーランド: 全カードを一度に配布
+            total = get_fantasyland_total_cards(player.fantasyland_bonus)
+            result = deal_cards(remaining, total)
+        else:
+            # 通常: 5枚配布
+            result = deal_cards(remaining, 5)
+
+        player.hand = result['dealt']
+        player.save()
+        remaining = result['remaining']
+
+    game.deck = remaining
+
+    # ファンタジーランドプレイヤーから開始（いなければディーラーから）
+    start_idx = game.dealer_index
+    fl_players = [p for p in game.players.order_by('order') if p.in_fantasyland]
+    if fl_players:
+        start_idx = fl_players[0].order
+
+    game.current_player_index = start_idx
+    game.phase = 'placing'
+    game.save()
+
+    return Response(GameSerializer(game).data)
+
+
+@api_view(['POST'])
+def end_game(request, game_id):
+    """ゲーム終了"""
+    try:
+        game = Game.objects.get(id=game_id)
+    except Game.DoesNotExist:
+        return Response({'error': 'ゲームが見つかりません'}, status=status.HTTP_404_NOT_FOUND)
+
+    game.phase = 'game_over'
+    game.save()
+
+    return Response(GameSerializer(game).data)
