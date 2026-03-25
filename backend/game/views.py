@@ -176,15 +176,32 @@ def _get_discard_count_for_player(player, game):
 
 
 def _get_next_player_index(game, current_index):
-    """次のプレイヤーを取得（ファンタジーランドで完了済みのプレイヤーをスキップ）"""
+    """次のプレイヤーを取得
+    - ボード完成済みプレイヤーをスキップ
+    - 非ファンタジーランドプレイヤーがまだ残っている場合、FLプレイヤーはスキップ
+    """
+    all_players = list(game.players.order_by('order'))
+
+    # 非ファンタジーランドプレイヤーで手札が残っている人がいるか
+    non_fl_remaining = any(
+        p.hand and not p.in_fantasyland
+        for p in all_players
+    )
+
     for i in range(1, NUM_PLAYERS + 1):
         next_idx = (current_index + i) % NUM_PLAYERS
-        next_player = game.players.filter(order=next_idx).first()
-        # ファンタジーランドプレイヤーでボード完成済みなら手札が空 → スキップ
-        if next_player and not next_player.hand:
-            if is_board_complete(next_player.get_board()):
-                continue
+        next_player = all_players[next_idx]
+
+        # ボード完成済みで手札なし → スキップ
+        if not next_player.hand and is_board_complete(next_player.get_board()):
+            continue
+
+        # 非ファンタジーランドがまだ残っているなら、FLプレイヤーは後回し
+        if non_fl_remaining and next_player.in_fantasyland:
+            continue
+
         return next_idx
+
     return (current_index + 1) % NUM_PLAYERS
 
 
@@ -272,14 +289,25 @@ def confirm_placement(request, game_id):
         remaining = result['remaining']
 
     game.deck = remaining
-    # ディーラーから開始、ただしボード完成済みならスキップ
+    # 非FLプレイヤーから開始、FLは最後
     start_idx = game.dealer_index
+    found = False
+    # まず非FLプレイヤーを探す
     for i in range(NUM_PLAYERS):
-        idx = (start_idx + i) % NUM_PLAYERS
+        idx = (game.dealer_index + i) % NUM_PLAYERS
         p = game.players.filter(order=idx).first()
-        if p and p.hand:
+        if p and p.hand and not p.in_fantasyland:
             start_idx = idx
+            found = True
             break
+    # 非FLがいなければ手札ありのプレイヤーから
+    if not found:
+        for i in range(NUM_PLAYERS):
+            idx = (game.dealer_index + i) % NUM_PLAYERS
+            p = game.players.filter(order=idx).first()
+            if p and p.hand:
+                start_idx = idx
+                break
     game.current_player_index = start_idx
     game.phase = 'placing'
     game.save()
@@ -340,11 +368,26 @@ def next_round(request, game_id):
 
     game.deck = remaining
 
-    # ファンタジーランドプレイヤーから開始（いなければディーラーから）
+    # 非ファンタジーランドプレイヤーから開始（FLプレイヤーは最後）
     start_idx = game.dealer_index
-    fl_players = [p for p in game.players.order_by('order') if p.in_fantasyland]
-    if fl_players:
-        start_idx = fl_players[0].order
+    # まず非FLプレイヤーを探す
+    found_non_fl = False
+    for i in range(NUM_PLAYERS):
+        idx = (game.dealer_index + i) % NUM_PLAYERS
+        p = game.players.filter(order=idx).first()
+        if p and p.hand and not p.in_fantasyland:
+            start_idx = idx
+            found_non_fl = True
+            break
+
+    # 非FLがいなければFLプレイヤーから
+    if not found_non_fl:
+        for i in range(NUM_PLAYERS):
+            idx = (game.dealer_index + i) % NUM_PLAYERS
+            p = game.players.filter(order=idx).first()
+            if p and p.hand:
+                start_idx = idx
+                break
 
     game.current_player_index = start_idx
     game.phase = 'placing'

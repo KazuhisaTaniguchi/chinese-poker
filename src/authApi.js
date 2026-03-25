@@ -73,5 +73,8 @@ export function startGame(roomId) {
 }
 
 export function getRoomState(roomId) {
-  return authRequest('GET', `/rooms/${roomId}/state/`);
+  // ゲストの場合、localStorageのトークンをクエリパラメータとして送信
+  const token = localStorage.getItem(`room_${roomId}_token`);
+  const tokenParam = token ? `?token=${token}` : '';
+  return authRequest('GET', `/rooms/${roomId}/state/${tokenParam}`);
 }

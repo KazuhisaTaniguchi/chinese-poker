@@ -123,10 +123,11 @@ def room_detail(request, room_id):
     return Response(data)
 
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def room_join(request, room_id, token):
-    """招待トークンでルームに参加"""
+    """招待トークンでルームに参加 (ログイン不要)"""
     try:
         room = Room.objects.get(id=room_id)
     except Room.DoesNotExist:
@@ -137,28 +138,19 @@ def room_join(request, room_id, token):
     except PlayerSlot.DoesNotExist:
         return Response({'error': '無効な招待リンクです'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if not request.user.is_authenticated:
-        # 未ログインの場合、ルーム情報だけ返す (フロントでログイン画面へ)
-        return Response({
-            'room_id': str(room.id),
-            'room_name': room.name,
-            'slot_name': slot.name,
-            'slot_order': slot.order,
-            'needs_login': True,
-        })
+    # セッションにトークンを保存 (ゲスト認証用)
+    request.session[f'room_{room_id}_token'] = str(token)
+    request.session.save()
 
-    # ログイン済み → スロットに紐づけ
-    if slot.user and slot.user != request.user:
-        return Response(
-            {'error': 'このスロットは既に別のユーザーが参加しています'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    slot.user = request.user
-    slot.save()
+    # ログイン済みの場合はスロットに紐づけ
+    if request.user.is_authenticated:
+        if not slot.user or slot.user == request.user:
+            slot.user = request.user
+            slot.save()
 
     return Response({
         'room_id': str(room.id),
+        'room_name': room.name,
         'slot_name': slot.name,
         'slot_order': slot.order,
         'joined': True,
@@ -192,16 +184,31 @@ def room_start_game(request, room_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def room_state(request, room_id):
-    """ルームのゲーム状態取得 (ポーリング用)"""
+    """ルームのゲーム状態取得 (ポーリング用 / ログイン不要)"""
     try:
         room = Room.objects.get(id=room_id)
     except Room.DoesNotExist:
         return Response({'error': 'ルームが見つかりません'}, status=status.HTTP_404_NOT_FOUND)
 
-    # 自分のスロットを特定
-    my_slot = room.slots.filter(user=request.user).first()
+    # プレイヤー特定: 1) ログインユーザー 2) トークン(クエリ) 3) セッション
+    my_slot = None
+    is_host = False
+
+    if request.user.is_authenticated:
+        my_slot = room.slots.filter(user=request.user).first()
+        is_host = room.host == request.user
+
+    if not my_slot:
+        # クエリパラメータのトークンで特定
+        token = request.query_params.get('token')
+        if not token:
+            # セッションから取得
+            token = request.session.get(f'room_{room_id}_token')
+        if token:
+            my_slot = room.slots.filter(token=token).first()
+
     if not my_slot:
         return Response({'error': 'このルームの参加者ではありません'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -214,8 +221,6 @@ def room_state(request, room_id):
 
     from game.serializers import GameSerializer
     game_data = GameSerializer(room.game).data
-
-    is_host = room.host == request.user
 
     # ホストにはスロット情報（トークン含む）を返す
     slots_data = None

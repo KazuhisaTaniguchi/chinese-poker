@@ -1,56 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import * as authApi from '../authApi.js';
 
-export default function JoinPage({ user, onLogin }) {
+/**
+ * 招待URL経由参加ページ（ログイン不要）
+ * トークンをlocalStorageに保存し、APIでjoinしてゲーム画面へ遷移
+ */
+export default function JoinPage() {
   const { roomId, token } = useParams();
-  const [info, setInfo] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    // トークンをlocalStorageに保存
+    localStorage.setItem(`room_${roomId}_token`, token);
 
-    // ログイン済み → 参加処理
+    // joinリクエスト
     authApi.joinRoom(roomId, token)
       .then(data => {
         if (data.joined) {
           navigate(`/play/${roomId}`);
         }
-        setInfo(data);
       })
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [user, roomId, token, navigate]);
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, [roomId, token, navigate]);
 
-  if (loading) return <div className="loading-page">参加中...</div>;
-
-  if (!user) {
+  if (error) {
     return (
       <div className="auth-page">
         <div className="auth-card">
           <h1 className="auth-title">♠ チャイポー</h1>
-          <p className="auth-subtitle">ゲームに招待されています</p>
-          <p className="join-info">参加するにはログインしてください</p>
-          <div className="join-buttons">
-            <Link to={`/login?redirect=/join/${roomId}/${token}`} className="btn btn-primary auth-btn">
-              ログイン
-            </Link>
-            <Link to={`/register?redirect=/join/${roomId}/${token}`} className="btn btn-outline auth-btn">
-              新規登録
-            </Link>
-          </div>
+          <div className="auth-error">{error}</div>
         </div>
       </div>
     );
   }
 
-  if (error) return <div className="error-page">{error}</div>;
-  if (info?.joined) return <div className="loading-page">ゲームに移動中...</div>;
+  if (loading) return <div className="loading-page">ゲームに参加中...</div>;
 
-  return <div className="loading-page">処理中...</div>;
+  return null;
 }

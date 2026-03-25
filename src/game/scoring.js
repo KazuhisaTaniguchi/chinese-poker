@@ -129,17 +129,21 @@ function calculateHeadToHead(player1, player2) {
 
     if (result > 0) {
       p1Score += 1;
+      p2Score -= 1;
       p1Wins += 1;
     } else if (result < 0) {
       p2Score += 1;
+      p1Score -= 1;
     }
   }
 
   // スクーピングボーナス (3列全勝)
   if (p1Wins === 3) {
     p1Score += 3;
+    p2Score -= 3;
   } else if (p1Wins === 0) {
     p2Score += 3;
+    p1Score -= 3;
   }
 
   // ロイヤリティ

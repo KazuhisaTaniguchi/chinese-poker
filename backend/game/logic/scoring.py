@@ -97,15 +97,19 @@ def _calculate_head_to_head(p1_board, p2_board):
 
         if result > 0:
             p1_score += 1
+            p2_score -= 1
             p1_wins += 1
         elif result < 0:
             p2_score += 1
+            p1_score -= 1
 
     # スクーピングボーナス
     if p1_wins == 3:
         p1_score += 3
+        p2_score -= 3
     elif p1_wins == 0:
         p2_score += 3
+        p1_score -= 3
 
     # ロイヤリティ
     p1_royalties = calculate_royalties(p1_board)

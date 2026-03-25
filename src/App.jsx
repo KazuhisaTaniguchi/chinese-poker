@@ -81,16 +81,14 @@ export default function App() {
           </ProtectedRoute>
         } />
 
-        {/* Join (can be unauthenticated) */}
+        {/* Join (ログイン不要) */}
         <Route path="/join/:roomId/:token" element={
-          <JoinPage user={user} onLogin={login} />
+          <JoinPage />
         } />
 
-        {/* Multiplayer Game */}
+        {/* Multiplayer Game (ゲスト参加可) */}
         <Route path="/play/:roomId" element={
-          <ProtectedRoute user={user}>
-            <GamePlayPage user={user} />
-          </ProtectedRoute>
+          <GamePlayPage user={user} />
         } />
 
         {/* Local mode (traditional) */}
