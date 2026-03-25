@@ -1,19 +1,19 @@
-import React from 'react';
+
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth.js';
-import { useGameState } from './hooks/useGameState.js';
-import { PHASES } from './game/gameState.js';
-import LoginPage from './components/LoginPage.jsx';
-import RegisterPage from './components/RegisterPage.jsx';
-import LobbyPage from './components/LobbyPage.jsx';
-import RoomPage from './components/RoomPage.jsx';
-import JoinPage from './components/JoinPage.jsx';
-import GamePlayPage from './components/GamePlayPage.jsx';
-import TitleScreen from './components/TitleScreen.jsx';
-import PlayerSetup from './components/PlayerSetup.jsx';
-import GameBoard from './components/GameBoard.jsx';
-import RoundResult from './components/RoundResult.jsx';
-import FinalResult from './components/FinalResult.jsx';
+import { useAuth } from './hooks/useAuth';
+import { useGameState } from './hooks/useGameState';
+import { PHASES } from './game/gameState';
+import LoginPage from './components/LoginPage';
+import RegisterPage from './components/RegisterPage';
+import LobbyPage from './components/LobbyPage';
+import RoomPage from './components/RoomPage';
+import JoinPage from './components/JoinPage';
+import GamePlayPage from './components/GamePlayPage';
+import TitleScreen from './components/TitleScreen';
+import PlayerSetup from './components/PlayerSetup';
+import GameBoard from './components/GameBoard';
+import RoundResult from './components/RoundResult';
+import FinalResult from './components/FinalResult';
 import './App.css';
 
 /**

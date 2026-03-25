@@ -1,5 +1,5 @@
-import { evaluateHand, compareHands, HAND_RANKS } from './hand.js';
-import { RANK_VALUES } from './deck.js';
+import { evaluateHand, compareHands, HAND_RANKS } from './hand';
+import { RANK_VALUES } from './deck';
 
 /**
  * トップ行 (3枚) のロイヤリティ

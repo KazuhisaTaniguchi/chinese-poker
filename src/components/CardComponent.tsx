@@ -1,7 +1,20 @@
-import React from 'react';
-import { SUIT_COLORS } from '../game/deck.js';
+import { SUIT_COLORS } from '../game/deck';
+import { Card } from '../types';
 
-export default function CardComponent({ card, selectable, selected, onClick, dimmed, compact, locked, draggableHand, draggableBoard, onDragStart }) {
+interface CardProps {
+  card: Card | null;
+  selectable?: boolean;
+  selected?: boolean;
+  onClick?: (e?: any) => void;
+  dimmed?: boolean;
+  compact?: boolean;
+  locked?: boolean;
+  draggableHand?: boolean;
+  draggableBoard?: boolean;
+  onDragStart?: (e: any) => void;
+}
+
+export default function CardComponent({ card, selectable, selected, onClick, dimmed, compact, locked, draggableHand, draggableBoard, onDragStart }: CardProps) {
   if (!card) {
     return <div className="card-slot" />;
   }

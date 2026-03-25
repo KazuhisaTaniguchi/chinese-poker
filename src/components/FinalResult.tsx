@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 export default function FinalResult({ players, onNewGame }) {
   const sorted = [...players].sort((a, b) => b.totalScore - a.totalScore);

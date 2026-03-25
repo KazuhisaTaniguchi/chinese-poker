@@ -14,13 +14,13 @@ async function request(method, path, body = null) {
     credentials: 'include',
   };
 
-  // CSRFトークン取得
+  const headers = options.headers as Record<string, string>;
   const csrfToken = document.cookie
     .split('; ')
     .find(row => row.startsWith('csrftoken='))
     ?.split('=')[1];
   if (csrfToken) {
-    options.headers['X-CSRFToken'] = csrfToken;
+    headers['X-CSRFToken'] = csrfToken;
   }
 
   if (body) {
@@ -59,7 +59,7 @@ export function placeCard(gameId, cardId, row) {
 
 // 元に戻す (card_id指定で特定カードを戻す)
 export function undoPlace(gameId, row, cardId = null) {
-  const body = { row };
+  const body: Record<string, any> = { row };
   if (cardId) body.card_id = cardId;
   return request('POST', `/games/${gameId}/undo/`, body);
 }

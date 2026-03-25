@@ -44,7 +44,7 @@ export default function useDragDrop({ onPlaceCard, onUndoRow, onMoveCard }) {
     const el = document.elementFromPoint(x, y);
     if (!el) return null;
     const target = el.closest('[data-drop-target]');
-    return target ? target.dataset.dropTarget : null;
+    return target ? (target as HTMLElement).dataset.dropTarget : null;
   }, [removeGhost]);
 
   // ドラッグ開始 (手札カード)

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import * as authApi from '../authApi.js';
+import * as authApi from '../authApi';
 
 export default function RoomPage({ user }) {
   const { roomId } = useParams();

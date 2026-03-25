@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-export default function LoginPage({ onLogin }) {
+export default function RegisterPage({ onRegister }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -11,10 +12,15 @@ export default function LoginPage({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
+    if (password !== confirmPassword) {
+      setError('パスワードが一致しません');
+      return;
+    }
+
+    setLoading(true);
     try {
-      await onLogin(username, password);
+      await onRegister(username, password);
       navigate('/lobby');
     } catch (err) {
       setError(err.message);
@@ -27,7 +33,7 @@ export default function LoginPage({ onLogin }) {
     <div className="auth-page">
       <div className="auth-card">
         <h1 className="auth-title">♠ チャイポー</h1>
-        <p className="auth-subtitle">ログイン</p>
+        <p className="auth-subtitle">新規登録</p>
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
@@ -49,7 +55,19 @@ export default function LoginPage({ onLogin }) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="パスワードを入力"
+              placeholder="4文字以上"
+              required
+              minLength={4}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="confirm-password">パスワード確認</label>
+            <input
+              id="confirm-password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="もう一度入力"
               required
             />
           </div>
@@ -57,13 +75,13 @@ export default function LoginPage({ onLogin }) {
           {error && <div className="auth-error">{error}</div>}
 
           <button type="submit" className="btn btn-primary auth-btn" disabled={loading}>
-            {loading ? 'ログイン中...' : 'ログイン'}
+            {loading ? '登録中...' : '新規登録'}
           </button>
         </form>
 
         <div className="auth-link">
-          アカウントをお持ちでない方は
-          <Link to="/register">新規登録</Link>
+          既にアカウントをお持ちの方は
+          <Link to="/login">ログイン</Link>
         </div>
       </div>
     </div>

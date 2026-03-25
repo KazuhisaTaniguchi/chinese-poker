@@ -1,4 +1,4 @@
-import { RANK_VALUES } from './deck.js';
+import { RANK_VALUES } from './deck';
 
 // ハンドランク定数
 export const HAND_RANKS = {

@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import * as authApi from '../authApi.js';
-import * as api from '../api.js';
-import GameBoard from './GameBoard.jsx';
-import RoundResult from './RoundResult.jsx';
-import FinalResult from './FinalResult.jsx';
-import { PHASES } from '../game/gameState.js';
+import * as authApi from '../authApi';
+import * as api from '../api';
+import GameBoard from './GameBoard';
+import RoundResult from './RoundResult';
+import FinalResult from './FinalResult';
+import { PHASES } from '../game/gameState';
 
 /**
  * マルチプレイヤー用ゲーム画面

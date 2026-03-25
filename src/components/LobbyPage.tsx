@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as authApi from '../authApi.js';
+import * as authApi from '../authApi';
 
 export default function LobbyPage({ user, onLogout }) {
   const [rooms, setRooms] = useState([]);
@@ -74,6 +74,8 @@ export default function LobbyPage({ user, onLogout }) {
         </div>
       </div>
 
+      {error && <div className="auth-error" style={{ margin: '0 var(--sp-md)' }}>{error}</div>}
+
       {!showForm ? (
         <div className="lobby-actions">
           <button className="btn btn-primary btn-lg" onClick={() => setShowForm(true)}>
@@ -108,13 +110,11 @@ export default function LobbyPage({ user, onLogout }) {
               ))}
             </div>
 
-            {error && <div className="auth-error">{error}</div>}
-
             <div className="form-buttons">
               <button type="submit" className="btn btn-primary" disabled={creating}>
                 {creating ? '作成中...' : 'ゲーム作成'}
               </button>
-              <button type="button" className="btn btn-outline" onClick={() => setShowForm(false)}>
+              <button type="button" className="btn btn-outline" onClick={() => { setShowForm(false); setError(''); }}>
                 キャンセル
               </button>
             </div>
@@ -133,13 +133,15 @@ export default function LobbyPage({ user, onLogout }) {
                   {room.game_id ? '🎮 プレイ中' : '⏳ 待機中'}
                 </span>
               </div>
-              <button
-                className="room-delete-btn"
-                onClick={(e) => { e.stopPropagation(); setDeleteTarget(room); }}
-                title="ルームを削除"
-              >
-                🗑
-              </button>
+              {room.host_name === user.username && (
+                <button
+                  className="room-delete-btn"
+                  onClick={(e) => { e.stopPropagation(); setDeleteTarget(room); setError(''); }}
+                  title="ルームを削除"
+                >
+                  🗑
+                </button>
+              )}
             </div>
           ))}
         </div>

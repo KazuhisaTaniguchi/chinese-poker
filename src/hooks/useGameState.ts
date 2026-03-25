@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import * as api from '../api.js';
+import * as api from '../api';
 
 /**
  * ゲームフェーズ定数 (バックエンドと同期)
@@ -73,10 +73,10 @@ export function useGameState() {
     setLoading(true);
     try {
       const data = await fn();
-      setState(prev => ({
-        ...apiResponseToState(data),
+      setState({
+        ...apiResponseToState(data) as any,
         selectedCard: null,
-      }));
+      });
       return data;
     } catch (err) {
       console.error('API Error:', err.message);
@@ -195,7 +195,7 @@ export function useGameState() {
   };
 
   // 配置完了チェック (パイナップル + ファンタジーランド対応)
-  const currentPlayer = state.players[state.currentPlayerIndex];
+  const currentPlayer = state.players[state.currentPlayerIndex] as any;
   const isFantasyland = currentPlayer?.inFantasyland;
   const flBonus = currentPlayer?.fantasylandBonus || 0;
   const totalCards = 13; // ボードに配置する合計枚数

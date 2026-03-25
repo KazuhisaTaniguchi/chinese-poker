@@ -1,9 +1,9 @@
-import React, { useMemo, useCallback, useState } from 'react';
-import PlayerBoard from './PlayerBoard.jsx';
-import OpponentPreview from './OpponentPreview.jsx';
-import HandArea from './HandArea.jsx';
-import ActionButtons from './ActionButtons.jsx';
-import useDragDrop from '../hooks/useDragDrop.js';
+import { useMemo, useCallback, useState } from 'react';
+import PlayerBoard from './PlayerBoard';
+import OpponentPreview from './OpponentPreview';
+import HandArea from './HandArea';
+import ActionButtons from './ActionButtons';
+import useDragDrop from '../hooks/useDragDrop';
 
 export default function GameBoard({ state, actions, isPlacementDone }) {
   const currentPlayer = state.players[state.currentPlayerIndex];

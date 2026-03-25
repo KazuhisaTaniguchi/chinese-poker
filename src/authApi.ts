@@ -5,19 +5,19 @@
 const API_BASE = '/api/auth';
 
 async function authRequest(method, path, body = null) {
-  const options = {
+  const options: RequestInit = {
     method,
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
   };
 
   // CSRFトークン取得
+  const headers = options.headers as Record<string, string>;
   const csrfToken = document.cookie
     .split('; ')
     .find(row => row.startsWith('csrftoken='))
     ?.split('=')[1];
   if (csrfToken) {
-    options.headers['X-CSRFToken'] = csrfToken;
+    headers['X-CSRFToken'] = csrfToken;
   }
 
   if (body) {

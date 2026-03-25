@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { checkFoul, calculateRoyalties } from '../game/scoring.js';
-import { evaluateHand, getHandName, compareHands } from '../game/hand.js';
+import { useState } from 'react';
+import { checkFoul, calculateRoyalties } from '../game/scoring';
+import { evaluateHand, getHandName, compareHands } from '../game/hand';
 
 const ROW_LABELS = { top: 'Top', middle: 'Middle', bottom: 'Bottom' };
 

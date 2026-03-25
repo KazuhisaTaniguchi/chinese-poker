@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import * as authApi from '../authApi.js';
+import * as authApi from '../authApi';
 
 /**
  * 招待URL経由参加ページ（ログイン不要）

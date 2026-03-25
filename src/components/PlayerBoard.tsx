@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
-import CardComponent from './CardComponent.jsx';
-import { ROW_LIMITS } from '../game/rules.js';
-import { evaluateHand, getHandName } from '../game/hand.js';
-import { canPlaceCard } from '../game/rules.js';
+import { useMemo } from 'react';
+import CardComponent from './CardComponent';
+import { ROW_LIMITS } from '../game/rules';
+import { evaluateHand, getHandName } from '../game/hand';
+import { canPlaceCard } from '../game/rules';
 
 const ROW_LABELS = { top: 'Top (3)', middle: 'Middle (5)', bottom: 'Bottom (5)' };
 const ROWS = ['top', 'middle', 'bottom'];

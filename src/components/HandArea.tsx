@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import CardComponent from './CardComponent.jsx';
-import { RANK_VALUES } from '../game/deck.js';
+import { useState, useMemo } from 'react';
+import CardComponent from './CardComponent';
+import { RANK_VALUES } from '../game/deck';
 
 const SUIT_ORDER = { '♠': 0, '♥': 1, '♦': 2, '♣': 3 };
 

@@ -1,6 +1,6 @@
-import { createDeck, shuffleDeck, dealCards } from './deck.js';
-import { calculateScores, checkFoul, calculateRoyalties } from './scoring.js';
-import { canPlaceCard, isBoardComplete, getCardsToDealt, TOTAL_CARDS, NUM_PLAYERS } from './rules.js';
+import { createDeck, shuffleDeck, dealCards } from './deck';
+import { calculateScores, checkFoul, calculateRoyalties } from './scoring';
+import { canPlaceCard, isBoardComplete, getCardsToDealt, TOTAL_CARDS, NUM_PLAYERS } from './rules';
 
 /**
  * ゲームフェーズ

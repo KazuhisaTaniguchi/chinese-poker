@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { SUIT_COLORS } from '../game/deck.js';
-import { ROW_LIMITS } from '../game/rules.js';
-import CardComponent from './CardComponent.jsx';
-import { evaluateHand, getHandName } from '../game/hand.js';
+import { useState } from 'react';
+import { SUIT_COLORS } from '../game/deck';
+import { ROW_LIMITS } from '../game/rules';
+import CardComponent from './CardComponent';
+import { evaluateHand, getHandName } from '../game/hand';
 
 const ROWS = ['top', 'middle', 'bottom'];
 const ROW_LABELS = { top: 'Top (3)', middle: 'Middle (5)', bottom: 'Bottom (5)' };
