@@ -57,6 +57,12 @@ export default function RoomPage({ user }) {
 
   return (
     <div className="room-page">
+      <div className="room-back-nav" style={{ marginBottom: '16px' }}>
+        <button className="btn btn-sm btn-outline" onClick={() => navigate('/lobby')}>
+          ↩ ロビーに戻る
+        </button>
+      </div>
+
       <div className="room-header">
         <h1 className="room-title">🏠 {room.name}</h1>
         <span className="room-host">ホスト: {room.host_name}</span>

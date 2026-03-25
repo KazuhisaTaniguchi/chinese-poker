@@ -78,3 +78,11 @@ export function getRoomState(roomId) {
   const tokenParam = token ? `?token=${token}` : '';
   return authRequest('GET', `/rooms/${roomId}/state/${tokenParam}`);
 }
+
+export function deleteRoom(roomId) {
+  return authRequest('DELETE', `/rooms/${roomId}/delete/`);
+}
+
+export function abortGame(roomId) {
+  return authRequest('POST', `/rooms/${roomId}/abort/`);
+}

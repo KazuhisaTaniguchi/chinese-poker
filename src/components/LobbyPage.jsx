@@ -9,10 +9,16 @@ export default function LobbyPage({ user, onLogout }) {
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
+  const fetchRooms = () => {
     authApi.getRooms().then(setRooms).catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchRooms();
   }, []);
 
   const handleCreate = async (e) => {
@@ -35,6 +41,20 @@ export default function LobbyPage({ user, onLogout }) {
       setError(err.message);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await authApi.deleteRoom(deleteTarget.id);
+      setDeleteTarget(null);
+      fetchRooms();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -106,13 +126,48 @@ export default function LobbyPage({ user, onLogout }) {
         <div className="lobby-rooms">
           <h2>あなたのルーム</h2>
           {rooms.map(room => (
-            <div key={room.id} className="room-card" onClick={() => navigate(`/room/${room.id}`)}>
-              <span className="room-card-name">{room.name}</span>
-              <span className="room-card-status">
-                {room.game_id ? '🎮 プレイ中' : '⏳ 待機中'}
-              </span>
+            <div key={room.id} className="room-card">
+              <div className="room-card-main" onClick={() => navigate(`/room/${room.id}`)}>
+                <span className="room-card-name">{room.name}</span>
+                <span className="room-card-status">
+                  {room.game_id ? '🎮 プレイ中' : '⏳ 待機中'}
+                </span>
+              </div>
+              <button
+                className="room-delete-btn"
+                onClick={(e) => { e.stopPropagation(); setDeleteTarget(room); }}
+                title="ルームを削除"
+              >
+                🗑
+              </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 削除確認モーダル */}
+      {deleteTarget && (
+        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
+          <div className="modal-content delete-modal" onClick={e => e.stopPropagation()}>
+            <h3>ルームの削除</h3>
+            <p>「<strong>{deleteTarget.name}</strong>」を削除しますか？</p>
+            <p className="delete-warning">この操作は取り消せません。ゲームデータも削除されます。</p>
+            <div className="modal-actions">
+              <button
+                className="btn btn-danger"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? '削除中...' : '削除する'}
+              </button>
+              <button
+                className="btn btn-outline"
+                onClick={() => setDeleteTarget(null)}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import * as authApi from '../authApi.js';
 import * as api from '../api.js';
 import GameBoard from './GameBoard.jsx';
@@ -21,7 +21,10 @@ export default function GamePlayPage({ user }) {
   const [copied, setCopied] = useState(null);
   const [isHost, setIsHost] = useState(false);
   const [slots, setSlots] = useState(null);
+  const [showAbortModal, setShowAbortModal] = useState(false);
+  const [aborting, setAborting] = useState(false);
   const pollingRef = useRef(null);
+  const navigate = useNavigate();
 
   // ポーリングでゲーム状態を取得
   const fetchState = useCallback(async () => {
@@ -219,6 +222,14 @@ export default function GamePlayPage({ user }) {
                 </div>
               ))}
             </div>
+            <div className="slide-menu-footer">
+              <button
+                className="btn btn-danger btn-block"
+                onClick={() => { setMenuOpen(false); setShowAbortModal(true); }}
+              >
+                ⛔ ゲーム中断
+              </button>
+            </div>
           </div>
         </>
       )}
@@ -286,6 +297,44 @@ export default function GamePlayPage({ user }) {
     );
   }
 
+  // ゲーム中断ハンドラ
+  const handleAbort = async () => {
+    setAborting(true);
+    try {
+      await authApi.abortGame(roomId);
+      navigate(`/room/${roomId}`);
+    } catch (err) {
+      console.error(err);
+      setAborting(false);
+    }
+  };
+
+  // 中断確認モーダル
+  const abortModal = showAbortModal && (
+    <div className="modal-overlay" onClick={() => setShowAbortModal(false)}>
+      <div className="modal-content delete-modal" onClick={e => e.stopPropagation()}>
+        <h3>⛔ ゲームを中断しますか？</h3>
+        <p>現在のゲームデータはすべて破棄されます。</p>
+        <p className="delete-warning">この操作は取り消せません。</p>
+        <div className="modal-actions">
+          <button
+            className="btn btn-danger"
+            onClick={handleAbort}
+            disabled={aborting}
+          >
+            {aborting ? '中断中...' : '中断する'}
+          </button>
+          <button
+            className="btn btn-outline"
+            onClick={() => setShowAbortModal(false)}
+          >
+            キャンセル
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   // 自分のターン → GameBoard表示
   const stateForBoard = {
     ...gameState,
@@ -296,6 +345,7 @@ export default function GamePlayPage({ user }) {
   return (
     <>
       {hamburgerMenu}
+      {abortModal}
       <GameBoard
         state={stateForBoard}
         actions={actions}

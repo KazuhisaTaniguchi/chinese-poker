@@ -1297,17 +1297,24 @@
 .room-card {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     background: var(--white);
-    padding: var(--sp-md) var(--sp-lg);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
-    cursor: pointer;
     margin-bottom: var(--sp-sm);
     transition: transform 0.15s;
+    overflow: hidden;
 }
 
-.room-card:active {
+.room-card-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1;
+    padding: var(--sp-md) var(--sp-lg);
+    cursor: pointer;
+}
+
+.room-card-main:active {
     transform: scale(0.98);
 }
 
@@ -1318,6 +1325,69 @@
 .room-card-status {
     font-size: 0.8rem;
     color: var(--gray);
+}
+
+.room-delete-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 100%;
+    min-height: 52px;
+    background: none;
+    border: none;
+    border-left: 1px solid var(--light-gray);
+    cursor: pointer;
+    font-size: 1rem;
+    opacity: 0.4;
+    transition: opacity 0.2s, background 0.2s;
+}
+
+.room-delete-btn:hover {
+    opacity: 1;
+    background: #fee;
+}
+
+.delete-modal {
+    max-width: 340px;
+    text-align: center;
+}
+
+.delete-modal h3 {
+    margin-bottom: var(--sp-md);
+}
+
+.delete-warning {
+    font-size: 0.8rem;
+    color: #c0392b;
+    margin-top: var(--sp-xs);
+}
+
+.modal-actions {
+    display: flex;
+    gap: var(--sp-sm);
+    justify-content: center;
+    margin-top: var(--sp-lg);
+}
+
+.btn-danger {
+    background: #e74c3c;
+    color: var(--white);
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-danger:hover {
+    background: #c0392b;
+}
+
+.btn-danger:disabled {
+    background: #ccc;
+    cursor: not-allowed;
 }
 
 /* ===== Room Page ===== */

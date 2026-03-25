@@ -123,6 +123,46 @@ def room_detail(request, room_id):
     return Response(data)
 
 
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def room_delete(request, room_id):
+    """ルーム削除 (ホストのみ)"""
+    try:
+        room = Room.objects.get(id=room_id)
+    except Room.DoesNotExist:
+        return Response({'error': 'ルームが見つかりません'}, status=status.HTTP_404_NOT_FOUND)
+
+    if room.host != request.user:
+        return Response({'error': '権限がありません'}, status=status.HTTP_403_FORBIDDEN)
+
+    # 関連ゲームも削除
+    if room.game:
+        room.game.delete()
+    room.delete()
+    return Response({'success': True}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def room_abort_game(request, room_id):
+    """ゲーム中断 (ホストのみ)"""
+    try:
+        room = Room.objects.get(id=room_id)
+    except Room.DoesNotExist:
+        return Response({'error': 'ルームが見つかりません'}, status=status.HTTP_404_NOT_FOUND)
+
+    if room.host != request.user:
+        return Response({'error': '権限がありません'}, status=status.HTTP_403_FORBIDDEN)
+
+    if not room.game:
+        return Response({'error': 'ゲームが開始されていません'}, status=status.HTTP_400_BAD_REQUEST)
+
+    room.game.delete()
+    room.game = None
+    room.save()
+    return Response({'success': True, 'message': 'ゲームを中断しました'})
+
+
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
