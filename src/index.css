@@ -18,12 +18,12 @@
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Spacing */
-  --sp-xs: 4px;
-  --sp-sm: 8px;
-  --sp-md: 12px;
-  --sp-lg: 16px;
-  --sp-xl: 24px;
-  --sp-2xl: 32px;
+  --sp-xs: 2px;
+  --sp-sm: 6px;
+  --sp-md: 10px;
+  --sp-lg: 14px;
+  --sp-xl: 20px;
+  --sp-2xl: 28px;
 
   /* Border radius */
   --radius-sm: 6px;
@@ -33,10 +33,10 @@
   --radius-full: 100px;
 
   /* Card specific */
-  --card-width: 60px;
-  --card-height: 84px;
-  --card-width-lg: 70px;
-  --card-height-lg: 98px;
+  --card-width: 50px;
+  --card-height: 60px;
+  --card-width-lg: 60px;
+  --card-height-lg: 70px;
 }
 
 /* Reset & Base */

@@ -1,21 +1,21 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function LoginPage({ onLogin }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       await onLogin(username, password);
-      navigate('/lobby');
+      navigate("/lobby");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -56,15 +56,19 @@ export default function LoginPage({ onLogin }) {
 
           {error && <div className="auth-error">{error}</div>}
 
-          <button type="submit" className="btn btn-primary auth-btn" disabled={loading}>
-            {loading ? 'ログイン中...' : 'ログイン'}
+          <button
+            type="submit"
+            className="btn btn-primary auth-btn"
+            disabled={loading}
+          >
+            {loading ? "ログイン中..." : "ログイン"}
           </button>
         </form>
 
-        <div className="auth-link">
+        {/* <div className="auth-link">
           アカウントをお持ちでない方は
           <Link to="/register">新規登録</Link>
-        </div>
+        </div> */}
       </div>
     </div>
   );
