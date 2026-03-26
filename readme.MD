@@ -1,6 +1,10 @@
 
 デプロイの手順（コード更新時）
 
+api-ofc.pocket-dealer.jp,
+
+153.120.1.70
+
 
 ssh deploy@153.120.1.70
 
