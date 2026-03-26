@@ -92,6 +92,12 @@ LOGGING = {
     },
 }
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://api-ofc.pocket-dealer.jp',
+    'https://ofc.pocket-dealer.jp',
+    'https://localhost:5173',
+    'https://192.168.3.83:5173'
+]
 
 # セッション設定
 # SESSION_COOKIE_SAMESITE = 'Lax'
