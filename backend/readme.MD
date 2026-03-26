@@ -1,7 +1,7 @@
 
 開発の手順
 
-source .venv/bin/activate
+cd ./backend&&source .venv/bin/activate&&python3 manage.py runserver
 
 
 
@@ -12,7 +12,7 @@ api-ofc.pocket-dealer.jp,
 153.120.1.70
 
 
-ssh deploy@153.120.1.70
+ssh deploy@153.120.1.70 -p 2222
 
 
 cd /var/www/chinese_poker

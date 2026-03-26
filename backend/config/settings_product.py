@@ -92,10 +92,12 @@ LOGGING = {
     },
 }
 
+CORS_ALLOW_CREDENTIALS = True
+
 CSRF_TRUSTED_ORIGINS = [
     'https://api-ofc.pocket-dealer.jp',
     'https://ofc.pocket-dealer.jp',
-    'https://localhost:5173'
+    'http://ofc.pocket-dealer.jp'
 ]
 
 # セッション設定
