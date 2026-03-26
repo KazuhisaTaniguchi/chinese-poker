@@ -4,7 +4,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from .serializers import (
     RegisterSerializer, LoginSerializer, UserSerializer,
@@ -58,6 +58,7 @@ def logout_view(request):
     return Response({'detail': 'ログアウトしました'})
 
 
+@ensure_csrf_cookie
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def me_view(request):

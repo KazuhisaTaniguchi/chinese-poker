@@ -93,6 +93,11 @@ LOGGING = {
 }
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    'https://ofc.pocket-dealer.jp',
+]
+
+CSRF_COOKIE_DOMAIN = '.pocket-dealer.jp'
 
 CSRF_TRUSTED_ORIGINS = [
     'https://api-ofc.pocket-dealer.jp',

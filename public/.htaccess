@@ -1,0 +1,16 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # HTTP → HTTPS リダイレクト（さくらのレンタルサーバー対応）
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^ https://ofc.pocket-dealer.jp%{REQUEST_URI} [R=301,L]
+
+  # 実際に存在するファイル・ディレクトリはそのまま返す（JS/CSS等）
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # それ以外はすべて index.html へ
+  RewriteRule ^ index.html [QSA,L]
+</IfModule>
