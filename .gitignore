@@ -73,8 +73,17 @@ typings/
 .yarn-integrity
 
 # dotenv environment variables file
-.env
+# .env はDocker開発用のデフォルト値なのでコミットする
+# .env.prod は本番シークレットなので絶対にコミットしない
+.env.local
+.env.*.local
 
+# Docker production secrets (never commit)
+.env.prod
+
+# Frontend build output
+frontend/dist/
+frontend/node_modules/
 
 
 .travis/README.md
@@ -182,4 +191,3 @@ node_modules/
 
 media/*
 dump.json
-.env
