@@ -70,7 +70,7 @@ export default function GamePlayPage({ user }) {
   // ポーリング開始
   useEffect(() => {
     fetchState();
-    pollingRef.current = setInterval(fetchState, 3000);
+    pollingRef.current = setInterval(fetchState, 1000);
     return () => clearInterval(pollingRef.current);
   }, [fetchState]);
 
@@ -82,6 +82,14 @@ export default function GamePlayPage({ user }) {
       setTimeout(() => setCopied(null), 2000);
     });
   };
+
+  // flIndex は useCallback の deps に含まれるため actions より先に計算する
+  // gameState が null の場合は安全なデフォルト値を使う
+  const isMyTurnEarly = gameState?.currentPlayerIndex === myPlayerIndex;
+  const currentPlayerEarly = gameState?.players[myPlayerIndex];
+  const myFLEarly = currentPlayerEarly?.inFantasyland && currentPlayerEarly?.hand?.length > 0;
+  const canPlayEarly = isMyTurnEarly || (myFLEarly && gameState?.phase === 'placing');
+  const flIndex = (canPlayEarly && !isMyTurnEarly) ? myPlayerIndex : null;
 
   // アクション (自分のターンのみ操作可能)
   const actions = {
@@ -97,44 +105,44 @@ export default function GamePlayPage({ user }) {
     placeCard: useCallback(async (row) => {
       if (!selectedCard || !gameState?.gameId) return;
       try {
-        await api.placeCard(gameState.gameId, selectedCard.id, row);
+        await api.placeCard(gameState.gameId, selectedCard.id, row, flIndex);
         setSelectedCard(null);
         await fetchState();
       } catch (err) { console.error(err); }
-    }, [selectedCard, gameState?.gameId, fetchState]),
+    }, [selectedCard, gameState?.gameId, flIndex, fetchState]),
 
     placeCardDirect: useCallback(async (cardId, row) => {
       if (!gameState?.gameId) return;
       try {
-        await api.placeCard(gameState.gameId, cardId, row);
+        await api.placeCard(gameState.gameId, cardId, row, flIndex);
         await fetchState();
       } catch (err) { console.error(err); }
-    }, [gameState?.gameId, fetchState]),
+    }, [gameState?.gameId, flIndex, fetchState]),
 
     undoPlace: useCallback(async (row, cardId = null) => {
       if (!gameState?.gameId) return;
       try {
-        await api.undoPlace(gameState.gameId, row, cardId);
+        await api.undoPlace(gameState.gameId, row, cardId, flIndex);
         await fetchState();
       } catch (err) { console.error(err); }
-    }, [gameState?.gameId, fetchState]),
+    }, [gameState?.gameId, flIndex, fetchState]),
 
     moveCard: useCallback(async (sourceRow, targetRow, cardId) => {
       if (!gameState?.gameId) return;
       try {
-        await api.undoPlace(gameState.gameId, sourceRow, cardId);
-        await api.placeCard(gameState.gameId, cardId, targetRow);
+        await api.undoPlace(gameState.gameId, sourceRow, cardId, flIndex);
+        await api.placeCard(gameState.gameId, cardId, targetRow, flIndex);
         await fetchState();
       } catch (err) { console.error(err); }
-    }, [gameState?.gameId, fetchState]),
+    }, [gameState?.gameId, flIndex, fetchState]),
 
     confirmPlacement: useCallback(async () => {
       if (!gameState?.gameId) return;
       try {
-        await api.confirmPlacement(gameState.gameId);
+        await api.confirmPlacement(gameState.gameId, flIndex);
         await fetchState();
       } catch (err) { console.error(err); }
-    }, [gameState?.gameId, fetchState]),
+    }, [gameState?.gameId, flIndex, fetchState]),
 
     confirmTurnSwitch: useCallback(async () => {
       if (!gameState?.gameId) return;
@@ -168,8 +176,9 @@ export default function GamePlayPage({ user }) {
   if (loading) return <div className="loading-page">ゲームを読み込み中...</div>;
   if (!gameState) return <div className="loading-page">ゲーム待機中...</div>;
 
-  const isMyTurn = gameState.currentPlayerIndex === myPlayerIndex;
+  const isMyTurn = isMyTurnEarly;
   const currentPlayer = gameState.players[myPlayerIndex];
+  const canPlay = canPlayEarly;
 
   // 配置完了判定
   const isPlacementDone = (() => {
@@ -181,6 +190,20 @@ export default function GamePlayPage({ user }) {
     if (isFL) return placed === 13;
     if (gameState.roundNumber === 0) return placed === 5;
     return currentPlayer.hand.length <= 1;
+  })();
+
+  // 複数FL時: 自分より前のFLプレイヤーが全員確定済みか（ディーラー左から順番に確定）
+  const canConfirmFL = (() => {
+    if (!currentPlayer?.inFantasyland) return true;
+    const flPlayers = gameState.players
+      .filter(p => p.inFantasyland)
+      .sort((a, b) => {
+        const orderA = (a.id - gameState.dealerIndex - 1 + 3) % 3;
+        const orderB = (b.id - gameState.dealerIndex - 1 + 3) % 3;
+        return orderA - orderB;
+      });
+    const myPos = flPlayers.findIndex(p => p.id === myPlayerIndex);
+    return flPlayers.slice(0, myPos).every(p => p.hand.length === 0);
   })();
 
   // ハンバーガーメニュー
@@ -240,37 +263,9 @@ export default function GamePlayPage({ user }) {
   const dealerPlayer = gameState.players[gameState.dealerIndex];
   const dealerName = dealerPlayer?.name || '';
 
-  // 自分のターンでない場合の待機画面
-  if (gameState.phase === 'placing' && !isMyTurn) {
-    return (
-      <div className="waiting-screen">
-        {hamburgerMenu}
-        <div className="dealer-info-bar">
-          <span className="dealer-badge">DEALER</span> {dealerName}
-        </div>
-        <div className="waiting-icon">⏳</div>
-        <h2>{gameState.players[gameState.currentPlayerIndex]?.name} のターン中...</h2>
-        <p>しばらくお待ちください</p>
-        <div className="waiting-spinner" />
-      </div>
-    );
-  }
-
-  // ターン切替 → 自動で進行
-  if (gameState.phase === 'turn_switch') {
-    if (isMyTurn) {
-      actions.confirmTurnSwitch();
-    }
-    return (
-      <div className="waiting-screen">
-        {hamburgerMenu}
-        <div className="dealer-info-bar">
-          <span className="dealer-badge">DEALER</span> {dealerName}
-        </div>
-        <div className="waiting-icon">🔄</div>
-        <h2>ターン切替中...</h2>
-      </div>
-    );
+  // ターン切替 → 自動で進行（ボードは表示したまま）
+  if (gameState.phase === 'turn_switch' && isMyTurn) {
+    actions.confirmTurnSwitch();
   }
 
   if (gameState.phase === 'round_result') {
@@ -335,11 +330,20 @@ export default function GamePlayPage({ user }) {
     </div>
   );
 
-  // 自分のターン → GameBoard表示
+  // 自分の視点でGameBoard表示
+  // 相手の配置中のカードを隠す（確定後に表示される）。FL同時プレイ対応。
   const stateForBoard = {
     ...gameState,
     currentPlayerIndex: myPlayerIndex,
-    selectedCard,
+    selectedCard: canPlay ? selectedCard : null,
+    players: gameState.players.map((p, i) => {
+      // 配置中の非FLアクティブプレイヤーのボードをlockedBoard（確定前は非表示）に置き換え
+      const isActivePlacing = i === gameState.currentPlayerIndex && gameState.phase === 'placing';
+      if (!isMyTurn && isActivePlacing && !p.inFantasyland) {
+        return { ...p, board: p.lockedBoard };
+      }
+      return p;
+    }),
   };
 
   return (
@@ -349,7 +353,10 @@ export default function GamePlayPage({ user }) {
       <GameBoard
         state={stateForBoard}
         actions={actions}
-        isPlacementDone={isPlacementDone}
+        isPlacementDone={isPlacementDone && canConfirmFL}
+        canPlay={canPlay}
+        isMyTurn={isMyTurn}
+        activePlayerName={gameState.players[gameState.currentPlayerIndex]?.name}
       />
     </>
   );

@@ -43,8 +43,10 @@ class GameCreateSerializer(serializers.Serializer):
 class PlaceCardSerializer(serializers.Serializer):
     card_id = serializers.CharField()
     row = serializers.ChoiceField(choices=['top', 'middle', 'bottom'])
+    player_index = serializers.IntegerField(required=False, default=None)
 
 
 class UndoSerializer(serializers.Serializer):
     row = serializers.ChoiceField(choices=['top', 'middle', 'bottom'])
     card_id = serializers.CharField(required=False, default=None)
+    player_index = serializers.IntegerField(required=False, default=None)

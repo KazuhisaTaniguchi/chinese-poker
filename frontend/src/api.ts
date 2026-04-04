@@ -58,20 +58,25 @@ export function getGame(gameId) {
 }
 
 // カード配置
-export function placeCard(gameId, cardId, row) {
-  return request("POST", `/games/${gameId}/place/`, { card_id: cardId, row });
+export function placeCard(gameId, cardId, row, playerIndex = null) {
+  const body: Record<string, any> = { card_id: cardId, row };
+  if (playerIndex !== null) body.player_index = playerIndex;
+  return request("POST", `/games/${gameId}/place/`, body);
 }
 
 // 元に戻す (card_id指定で特定カードを戻す)
-export function undoPlace(gameId, row, cardId = null) {
+export function undoPlace(gameId, row, cardId = null, playerIndex = null) {
   const body: Record<string, any> = { row };
   if (cardId) body.card_id = cardId;
+  if (playerIndex !== null) body.player_index = playerIndex;
   return request("POST", `/games/${gameId}/undo/`, body);
 }
 
 // 配置確定
-export function confirmPlacement(gameId) {
-  return request("POST", `/games/${gameId}/confirm/`);
+export function confirmPlacement(gameId, playerIndex = null) {
+  const body: Record<string, any> = {};
+  if (playerIndex !== null) body.player_index = playerIndex;
+  return request("POST", `/games/${gameId}/confirm/`, Object.keys(body).length ? body : null);
 }
 
 // ターン切替確認

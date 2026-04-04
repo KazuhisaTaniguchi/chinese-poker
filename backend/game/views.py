@@ -97,8 +97,15 @@ def place_card(request, game_id):
     ser.is_valid(raise_exception=True)
     card_id = ser.validated_data['card_id']
     row = ser.validated_data['row']
+    req_player_index = ser.validated_data.get('player_index')
 
-    player = game.players.filter(order=game.current_player_index).first()
+    if req_player_index is not None:
+        player = game.players.filter(order=req_player_index).first()
+        if not player or not player.in_fantasyland:
+            return Response({'error': '自分のターンではありません'}, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        player = game.players.filter(order=game.current_player_index).first()
+
     if not player:
         return Response({'error': 'プレイヤーが見つかりません'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -138,8 +145,15 @@ def undo_place(request, game_id):
     ser.is_valid(raise_exception=True)
     row = ser.validated_data['row']
     card_id = ser.validated_data.get('card_id')
+    req_player_index = ser.validated_data.get('player_index')
 
-    player = game.players.filter(order=game.current_player_index).first()
+    if req_player_index is not None:
+        player = game.players.filter(order=req_player_index).first()
+        if not player or not player.in_fantasyland:
+            return Response({'error': '自分のターンではありません'}, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        player = game.players.filter(order=game.current_player_index).first()
+
     board = player.get_board()
 
     if not board[row]:
@@ -216,14 +230,86 @@ def _get_next_player_index(game, current_index):
     return (current_index + 1) % NUM_PLAYERS
 
 
+def _finish_round(game):
+    """ラウンド終了処理: スコア計算 + FL判定"""
+    from .logic.rules import check_fantasyland_continuation
+    boards = game.get_all_boards()
+    round_scores = calculate_scores(boards)
+    game.round_scores = round_scores
+
+    for i, p in enumerate(game.players.order_by('order')):
+        p.total_score += round_scores[i]
+
+        was_in_fl = p.in_fantasyland
+        was_bonus = p.fantasyland_bonus
+        p.in_fantasyland = False
+        p.fantasyland_bonus = 0
+
+        if not check_foul(p.get_board()):
+            bonus = 0
+            if was_in_fl:
+                if check_fantasyland_continuation(p.get_board()):
+                    bonus = was_bonus
+            else:
+                bonus = check_fantasyland_qualification(p.board_top)
+            if bonus > 0:
+                p.in_fantasyland = True
+                p.fantasyland_bonus = bonus
+        p.save()
+
+    game.phase = 'round_result'
+    game.save()
+
+
 @api_view(['POST'])
 def confirm_placement(request, game_id):
-    """配置確定 → ターン進行 (パイナップルOFC + ファンタジーランド対応)"""
+    """配置確定 → ターン進行 (パイナップルOFC + ファンタジーランド同時プレイ対応)"""
     try:
         game = Game.objects.get(id=game_id)
     except Game.DoesNotExist:
         return Response({'error': 'ゲームが見つかりません'}, status=status.HTTP_404_NOT_FOUND)
 
+    # FLプレイヤーの独立confirm: player_index が指定された場合
+    req_player_index = request.data.get('player_index')
+    if req_player_index is not None:
+        player = game.players.filter(order=req_player_index).first()
+        if not player or not player.in_fantasyland:
+            return Response({'error': '自分のターンではありません'}, status=status.HTTP_400_BAD_REQUEST)
+
+        discard_count = _get_discard_count_for_player(player, game)
+        if len(player.hand) != discard_count:
+            placed = sum(len(v) for v in player.get_board().values())
+            remaining_to_place = TOTAL_CARDS - placed
+            return Response(
+                {'error': f'あと{remaining_to_place}枚配置してください'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 複数FL時の確定順序チェック（ディーラー左から順番に確定）
+        fl_players = list(game.players.filter(in_fantasyland=True).order_by('order'))
+        if len(fl_players) > 1:
+            fl_ordered = sorted(fl_players, key=lambda p: (p.order - game.dealer_index - 1) % NUM_PLAYERS)
+            my_pos = next(i for i, p in enumerate(fl_ordered) if p.order == player.order)
+            for prev_fl in fl_ordered[:my_pos]:
+                if prev_fl.hand:
+                    return Response({'error': '前のFLプレイヤーが確定していません'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 捨て札処理
+        if discard_count > 0:
+            player.hand = []
+        player.save()
+
+        # 全プレイヤーがボード完成 & 手札空 → ラウンド終了
+        all_done = all(
+            is_board_complete(p.get_board()) and not p.hand
+            for p in game.players.all()
+        )
+        if all_done:
+            _finish_round(game)
+
+        return Response(GameSerializer(game).data)
+
+    # --- 通常の confirm (current_player_index のプレイヤー) ---
     player = game.players.filter(order=game.current_player_index).first()
     discard_count = _get_discard_count_for_player(player, game)
 
@@ -241,10 +327,7 @@ def confirm_placement(request, game_id):
         player.hand = []
         player.save()
 
-    # ファンタジーランドプレイヤーはこの時点でボード完成
-    # ※in_fantasylandフラグはラウンド終了時(継続判定)まで維持する
-
-    # サブラウンド完了(配られた手札を全員が置き終わったか)チェック
+    # サブラウンド完了チェック（非FLのみ対象）
     non_fl_playing = any(
         not is_board_complete(p.get_board()) and not p.in_fantasyland
         for p in game.players.all()
@@ -265,46 +348,17 @@ def confirm_placement(request, game_id):
         game.save()
         return Response(GameSerializer(game).data)
 
-    # 全員完了 → ボード埋まりチェック
-    all_complete = all(
-        is_board_complete(p.get_board()) for p in game.players.all()
+    # 全プレイヤーがボード完成 & 手札空（FL確定済み含む）→ ラウンド終了
+    all_done = all(
+        is_board_complete(p.get_board()) and not p.hand
+        for p in game.players.all()
     )
 
-    if all_complete:
-        # ラウンド終了 → スコア計算 + ファンタジーランド判定
-        boards = game.get_all_boards()
-        round_scores = calculate_scores(boards)
-        game.round_scores = round_scores
-
-        from .logic.rules import check_fantasyland_qualification, check_fantasyland_continuation
-        for i, p in enumerate(game.players.order_by('order')):
-            p.total_score += round_scores[i]
-
-            was_in_fl = p.in_fantasyland
-            was_bonus = p.fantasyland_bonus
-            # 一旦リセット
-            p.in_fantasyland = False
-            p.fantasyland_bonus = 0
-
-            # ファンタジーランド判定 (ファウルでない場合のみ)
-            if not check_foul(p.get_board()):
-                bonus = 0
-                if was_in_fl:
-                    if check_fantasyland_continuation(p.get_board()):
-                        bonus = was_bonus  # 継続時は前回のボーナス枚数を引き継ぐ
-                else:
-                    bonus = check_fantasyland_qualification(p.board_top)
-                    
-                if bonus > 0:
-                    p.in_fantasyland = True
-                    p.fantasyland_bonus = bonus
-            p.save()
-
-        game.phase = 'round_result'
-        game.save()
+    if all_done:
+        _finish_round(game)
         return Response(GameSerializer(game).data)
 
-    # 次のサブラウンド進行 または FLの手番開始
+    # 次のサブラウンド進行（非FLのみ）
     players_to_deal = [
         p for p in game.players.order_by('order')
         if not p.in_fantasyland and not is_board_complete(p.get_board())
@@ -331,7 +385,7 @@ def confirm_placement(request, game_id):
             start_idx = idx
             found = True
             break
-            
+
     if not found:
         for i in range(NUM_PLAYERS):
             idx = (game.dealer_index + 1 + i) % NUM_PLAYERS

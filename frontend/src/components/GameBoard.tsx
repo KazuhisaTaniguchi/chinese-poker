@@ -5,7 +5,7 @@ import HandArea from './HandArea';
 import ActionButtons from './ActionButtons';
 import useDragDrop from '../hooks/useDragDrop';
 
-export default function GameBoard({ state, actions, isPlacementDone }) {
+export default function GameBoard({ state, actions, isPlacementDone, canPlay = true, isMyTurn = true, activePlayerName = '' }) {
   const currentPlayer = state.players[state.currentPlayerIndex];
   const opponents = state.players.filter((_, i) => i !== state.currentPlayerIndex);
   const isFantasyland = currentPlayer?.inFantasyland;
@@ -104,7 +104,14 @@ export default function GameBoard({ state, actions, isPlacementDone }) {
         </span>
       </div>
 
-      {isFantasyland && (
+      {!canPlay && (
+        <div className="waiting-banner">
+          <span className="waiting-spinner-inline" />
+          <span>{activePlayerName} のターン中...</span>
+        </div>
+      )}
+
+      {canPlay && isFantasyland && (
         <div className="fantasyland-banner">
           <span className="fl-icon">🌟</span>
           <span className="fl-text">
@@ -121,30 +128,34 @@ export default function GameBoard({ state, actions, isPlacementDone }) {
         selectedBoardCard={selectedBoardCard}
         onPlaceCard={handleRowClick}
         onBoardCardClick={handleBoardCardClick}
-        isActive={true}
+        isActive={canPlay}
         onBoardDragStart={handleBoardDragStart}
         dealerIndex={state.dealerIndex}
       />
 
-      <HandArea
-        cards={currentPlayer.hand}
-        selectedCard={state.selectedCard}
-        onSelectCard={handleSelectCard}
-        isDiscardMode={isDiscardMode}
-        discardCount={discardCount}
-        isFantasyland={isFantasyland}
-        onHandDragStart={handleHandDragStart}
-      />
+      {canPlay && (
+        <>
+          <HandArea
+            cards={currentPlayer.hand}
+            selectedCard={state.selectedCard}
+            onSelectCard={handleSelectCard}
+            isDiscardMode={isDiscardMode}
+            discardCount={discardCount}
+            isFantasyland={isFantasyland}
+            onHandDragStart={handleHandDragStart}
+          />
 
-      <ActionButtons
-        onConfirm={actions.confirmPlacement}
-        onUndo={handleUndo}
-        canConfirm={isPlacementDone}
-        hasPlacedCards={hasPlacedCards}
-        selectedCard={state.selectedCard || selectedBoardCard?.card}
-        isDiscardMode={isDiscardMode}
-        discardCount={discardCount}
-      />
+          <ActionButtons
+            onConfirm={actions.confirmPlacement}
+            onUndo={handleUndo}
+            canConfirm={isPlacementDone}
+            hasPlacedCards={hasPlacedCards}
+            selectedCard={state.selectedCard || selectedBoardCard?.card}
+            isDiscardMode={isDiscardMode}
+            discardCount={discardCount}
+          />
+        </>
+      )}
     </div>
   );
 }
