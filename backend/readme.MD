@@ -1,62 +1,48 @@
 
-開発の手順
+開発サーバー起動
 
-cd ./backend&&source .venv/bin/activate&&python3 manage.py runserver
-
-
-
-デプロイの手順（コード更新時）
-
-api-ofc.pocket-dealer.jp,
-
-153.120.1.70
-
-
-ssh deploy@153.120.1.70 -p 2222
-
-
-cd /var/www/chinese_poker
-source venv/bin/activate
-set -a && source .env && set +a
-
-
-# 依存パッケージの更新（必要な場合）
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
+python manage.py runserver
 
-# マイグレーション（必要な場合）
-python manage.py migrate
+または Docker Compose（開発環境）:
 
-# 静的ファイルの再収集
-python manage.py collectstatic --noinput
-
-# Gunicornの再起動
-sudo systemctl restart gunicorn
+docker compose up
 
 
-ログの確認方法
+デプロイ（Xserver VPS / 本番）
+
+初回セットアップ:
+
+bash deploy/init-letsencrypt.sh your-email@example.com
+docker compose -f docker-compose.prod.yml up -d
+
+コード更新時:
+
+bash deploy/deploy.sh
 
 
-# Nginxのアクセスログ
-sudo tail -f /var/log/nginx/access.log
+ログ確認
 
-# Nginxのエラーログ
-sudo tail -f /var/log/nginx/error.log
-
-# Gunicornのエラーログ
-tail -f /var/www/myproject/logs/gunicorn-error.log
-
-# Djangoのログ
-tail -f /var/www/myproject/logs/django.log
-
-# Fail2Banのログ
-sudo tail -f /var/log/fail2ban.log
+docker compose -f docker-compose.prod.yml logs -f backend
+docker compose -f docker-compose.prod.yml logs -f nginx
+docker compose -f docker-compose.prod.yml logs -f certbot
 
 
-# 定期的なセキュリティ更新
+コンテナ状態確認
 
-# システムの更新
-sudo apt update && sudo apt upgrade -y
+docker compose -f docker-compose.prod.yml ps
 
-# Python依存パッケージの脆弱性チェック
+
+DB バックアップ (手動)
+
+docker compose -f docker-compose.prod.yml exec -T db \
+  pg_dump -U chinese_poker chinese_poker | gzip > backup_$(date +%Y%m%d).sql.gz
+
+
+セキュリティ監査
+
 pip install pip-audit
 pip-audit
