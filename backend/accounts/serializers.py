@@ -46,6 +46,6 @@ class RoomCreateSerializer(serializers.Serializer):
     room_name = serializers.CharField(max_length=100)
     player_names = serializers.ListField(
         child=serializers.CharField(max_length=50),
-        min_length=3,
+        min_length=2,
         max_length=3,
     )

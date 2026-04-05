@@ -6,6 +6,7 @@ export default function LobbyPage({ user, onLogout }) {
   const [rooms, setRooms] = useState([]);
   const [roomName, setRoomName] = useState('');
   const [playerNames, setPlayerNames] = useState(['', '', '']);
+  const [playerCount, setPlayerCount] = useState(3);
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
@@ -25,7 +26,7 @@ export default function LobbyPage({ user, onLogout }) {
     e.preventDefault();
     setError('');
 
-    if (playerNames.some(n => !n.trim())) {
+    if (playerNames.slice(0, playerCount).some(n => !n.trim())) {
       setError('全員の名前を入力してください');
       return;
     }
@@ -34,7 +35,7 @@ export default function LobbyPage({ user, onLogout }) {
     try {
       const room = await authApi.createRoom(
         roomName || `${user.username}のルーム`,
-        playerNames,
+        playerNames.slice(0, playerCount),
       );
       navigate(`/room/${room.id}`);
     } catch (err) {
@@ -97,8 +98,21 @@ export default function LobbyPage({ user, onLogout }) {
             </div>
 
             <div className="player-names-group">
-              <label>プレイヤー名 (3人)</label>
-              {playerNames.map((name, i) => (
+              <label>人数</label>
+              <div className="player-count-btns">
+                {[2, 3].map(n => (
+                  <button
+                    key={n}
+                    type="button"
+                    className={`btn ${playerCount === n ? 'btn-primary' : 'btn-outline'}`}
+                    onClick={() => setPlayerCount(n)}
+                  >
+                    {n}人
+                  </button>
+                ))}
+              </div>
+              <label style={{ marginTop: '0.5rem' }}>プレイヤー名 ({playerCount}人)</label>
+              {playerNames.slice(0, playerCount).map((name, i) => (
                 <input
                   key={i}
                   type="text"

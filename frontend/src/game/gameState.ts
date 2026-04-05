@@ -1,6 +1,6 @@
 import { createDeck, shuffleDeck, dealCards } from './deck';
 import { calculateScores, checkFoul, calculateRoyalties } from './scoring';
-import { canPlaceCard, isBoardComplete, getCardsToDealt, TOTAL_CARDS, NUM_PLAYERS } from './rules';
+import { canPlaceCard, isBoardComplete, getCardsToDealt, TOTAL_CARDS } from './rules';
 
 /**
  * ゲームフェーズ
@@ -59,7 +59,7 @@ export function startNewRound(state) {
 
   // 各プレイヤーに5枚ずつ配布
   let remainingDeck = deck;
-  for (let i = 0; i < NUM_PLAYERS; i++) {
+  for (let i = 0; i < players.length; i++) {
     const { dealt, remaining } = dealCards(remainingDeck, 5);
     players[i].hand = dealt;
     remainingDeck = remaining;
@@ -162,7 +162,7 @@ export function isPlacementComplete(state) {
  * ターンを進める (次のプレイヤーへ、または次のラウンドへ)
  */
 export function advanceTurn(state) {
-  const nextPlayerIndex = (state.currentPlayerIndex + 1) % NUM_PLAYERS;
+  const nextPlayerIndex = (state.currentPlayerIndex + 1) % state.players.length;
 
   // 全プレイヤーがこのラウンドの配置を完了したか
   const allPlaced = state.players.every(p => p.hand.length === 0);
@@ -231,7 +231,7 @@ export function confirmTurnSwitch(state) {
  * 次のゲームラウンドを開始
  */
 export function startNextGameRound(state) {
-  const newDealerIndex = (state.dealerIndex + 1) % NUM_PLAYERS;
+  const newDealerIndex = (state.dealerIndex + 1) % state.players.length;
   const newState = {
     ...state,
     gameRound: state.gameRound + 1,

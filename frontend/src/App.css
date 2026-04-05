@@ -133,6 +133,23 @@
     margin-top: var(--sp-lg);
 }
 
+.player-count-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-xs);
+}
+
+.player-count-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gray);
+}
+
+.player-count-btns {
+    display: flex;
+    gap: var(--sp-sm);
+}
+
 /* ----- Game Header ----- */
 .game-header {
     display: flex;

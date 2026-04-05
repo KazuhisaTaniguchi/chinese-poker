@@ -35,7 +35,7 @@ class GameSerializer(serializers.ModelSerializer):
 class GameCreateSerializer(serializers.Serializer):
     player_names = serializers.ListField(
         child=serializers.CharField(max_length=50),
-        min_length=3,
+        min_length=2,
         max_length=3,
     )
 

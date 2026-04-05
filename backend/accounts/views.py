@@ -86,7 +86,7 @@ def room_list(request):
         host=request.user,
     )
 
-    # 3人分のプレイヤー枠を作成
+    # プレイヤー枠を作成
     player_names = ser.validated_data['player_names']
     for i, name in enumerate(player_names):
         slot = PlayerSlot.objects.create(

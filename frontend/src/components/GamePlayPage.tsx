@@ -195,11 +195,12 @@ export default function GamePlayPage({ user }) {
   // 複数FL時: 自分より前のFLプレイヤーが全員確定済みか（ディーラー左から順番に確定）
   const canConfirmFL = (() => {
     if (!currentPlayer?.inFantasyland) return true;
+    const n = gameState.players.length;
     const flPlayers = gameState.players
       .filter(p => p.inFantasyland)
       .sort((a, b) => {
-        const orderA = (a.id - gameState.dealerIndex - 1 + 3) % 3;
-        const orderB = (b.id - gameState.dealerIndex - 1 + 3) % 3;
+        const orderA = (a.id - gameState.dealerIndex - 1 + n) % n;
+        const orderB = (b.id - gameState.dealerIndex - 1 + n) % n;
         return orderA - orderB;
       });
     const myPos = flPlayers.findIndex(p => p.id === myPlayerIndex);

@@ -13,7 +13,8 @@ SUBSEQUENT_DEAL = 3       # パイナップル: 3枚配布
 CARDS_TO_PLACE = 2        # パイナップル: 2枚配置
 CARDS_TO_DISCARD = 1      # パイナップル: 1枚捨て
 TOTAL_ROUNDS = 5          # 初回 + 4ラウンド (5 + 2*4 = 13枚)
-NUM_PLAYERS = 3
+MIN_PLAYERS = 2
+MAX_PLAYERS = 3
 
 
 def can_place_card(board, row):
