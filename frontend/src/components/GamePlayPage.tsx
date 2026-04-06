@@ -90,6 +90,11 @@ export default function GamePlayPage({ user }) {
   const myFLEarly = currentPlayerEarly?.inFantasyland && currentPlayerEarly?.hand?.length > 0;
   const canPlayEarly = isMyTurnEarly || (myFLEarly && gameState?.phase === 'placing');
   const flIndex = (canPlayEarly && !isMyTurnEarly) ? myPlayerIndex : null;
+  // FL確定済み & 他プレイヤー待機中の状態
+  const isFlConfirmedWaiting =
+    currentPlayerEarly?.inFantasyland === true &&
+    currentPlayerEarly?.hand?.length === 0 &&
+    gameState?.phase === 'placing';
 
   // アクション (自分のターンのみ操作可能)
   const actions = {
@@ -143,6 +148,14 @@ export default function GamePlayPage({ user }) {
         await fetchState();
       } catch (err) { console.error(err); }
     }, [gameState?.gameId, flIndex, fetchState]),
+
+    unconfirmFL: useCallback(async () => {
+      if (!gameState?.gameId || myPlayerIndex === null) return;
+      try {
+        await api.unconfirmFL(gameState.gameId, myPlayerIndex);
+        await fetchState();
+      } catch (err) { console.error(err); }
+    }, [gameState?.gameId, myPlayerIndex, fetchState]),
 
     confirmTurnSwitch: useCallback(async () => {
       if (!gameState?.gameId) return;
@@ -358,6 +371,8 @@ export default function GamePlayPage({ user }) {
         canPlay={canPlay}
         isMyTurn={isMyTurn}
         activePlayerName={gameState.players[gameState.currentPlayerIndex]?.name}
+        isFlConfirmedWaiting={isFlConfirmedWaiting}
+        onUnconfirmFL={actions.unconfirmFL}
       />
     </>
   );

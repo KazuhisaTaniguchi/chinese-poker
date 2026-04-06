@@ -72,6 +72,11 @@ export function undoPlace(gameId, row, cardId = null, playerIndex = null) {
   return request("POST", `/games/${gameId}/undo/`, body);
 }
 
+// FL確定キャンセル
+export function unconfirmFL(gameId, playerIndex: number) {
+  return request("POST", `/games/${gameId}/unconfirm-fl/`, { player_index: playerIndex });
+}
+
 // 配置確定
 export function confirmPlacement(gameId, playerIndex = null) {
   const body: Record<string, any> = {};

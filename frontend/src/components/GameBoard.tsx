@@ -5,7 +5,7 @@ import HandArea from './HandArea';
 import ActionButtons from './ActionButtons';
 import useDragDrop from '../hooks/useDragDrop';
 
-export default function GameBoard({ state, actions, isPlacementDone, canPlay = true, isMyTurn = true, activePlayerName = '' }) {
+export default function GameBoard({ state, actions, isPlacementDone, canPlay = true, isMyTurn = true, activePlayerName = '', isFlConfirmedWaiting = false, onUnconfirmFL = null }) {
   const currentPlayer = state.players[state.currentPlayerIndex];
   const opponents = state.players.filter((_, i) => i !== state.currentPlayerIndex);
   const isFantasyland = currentPlayer?.inFantasyland;
@@ -107,7 +107,15 @@ export default function GameBoard({ state, actions, isPlacementDone, canPlay = t
       {!canPlay && (
         <div className="waiting-banner">
           <span className="waiting-spinner-inline" />
-          <span>{activePlayerName} のターン中...</span>
+          <span>{isFlConfirmedWaiting ? '確定済み - 他のプレイヤーを待っています' : `${activePlayerName} のターン中...`}</span>
+        </div>
+      )}
+
+      {!canPlay && isFlConfirmedWaiting && (
+        <div className="action-bar">
+          <button className="btn btn-secondary" onClick={onUnconfirmFL}>
+            確定キャンセル
+          </button>
         </div>
       )}
 

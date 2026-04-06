@@ -245,6 +245,7 @@ def _finish_round(game):
         was_bonus = p.fantasyland_bonus
         p.in_fantasyland = False
         p.fantasyland_bonus = 0
+        p.fl_saved_hand = []
 
         if not check_foul(p.get_board()):
             bonus = 0
@@ -296,8 +297,9 @@ def confirm_placement(request, game_id):
                 if prev_fl.hand:
                     return Response({'error': '前のFLプレイヤーが確定していません'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 捨て札処理
+        # 捨て札処理: 捨て札を保存してからhandをクリア（キャンセル用）
         if discard_count > 0:
+            player.fl_saved_hand = list(player.hand)
             player.hand = []
         player.save()
 
@@ -405,6 +407,37 @@ def confirm_placement(request, game_id):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
+def unconfirm_fl(request, game_id):
+    """FLプレイヤーの確定をキャンセルし、配置をやり直す"""
+    try:
+        game = Game.objects.get(id=game_id)
+    except Game.DoesNotExist:
+        return Response({'error': 'ゲームが見つかりません'}, status=status.HTTP_404_NOT_FOUND)
+
+    if game.phase != 'placing':
+        return Response({'error': '配置フェーズではないためキャンセルできません'}, status=status.HTTP_400_BAD_REQUEST)
+
+    req_player_index = request.data.get('player_index')
+    if req_player_index is None:
+        return Response({'error': 'player_indexが必要です'}, status=status.HTTP_400_BAD_REQUEST)
+
+    player = game.players.filter(order=req_player_index).first()
+    if not player or not player.in_fantasyland:
+        return Response({'error': 'FLプレイヤーではありません'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if player.hand or not player.fl_saved_hand:
+        return Response({'error': 'まだ確定していません'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 復元: fl_saved_hand → hand
+    player.hand = list(player.fl_saved_hand)
+    player.fl_saved_hand = []
+    player.save()
+
+    return Response(GameSerializer(game).data)
+
+
+@api_view(['POST'])
 def confirm_turn_switch(request, game_id):
     """ターン切替確認 → プレイ画面へ"""
     try:
@@ -456,6 +489,7 @@ def next_round(request, game_id):
             result = deal_cards(remaining, 5)
 
         player.hand = result['dealt']
+        player.fl_saved_hand = []
         player.save()
         remaining = result['remaining']
 
