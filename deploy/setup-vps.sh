@@ -17,15 +17,15 @@ echo "=== [1/5] Creating Docker external network ==="
 docker network create proxy_net 2>/dev/null && echo "Created proxy_net" || echo "proxy_net already exists"
 
 echo "=== [2/5] Creating shared directories ==="
-mkdir -p /var/www/chinese_poker/shared/{frontend_dist,backend_static,backend_media}
-mkdir -p /var/www/holdem/shared/{frontend_dist,backend_static,backend_media}
-chmod -R 777 /var/www/chinese_poker/shared
-chmod -R 777 /var/www/holdem/shared
+sudo mkdir -p /var/www/chinese_poker/shared/{frontend_dist,backend_static,backend_media}
+sudo mkdir -p /var/www/holdem/shared/{frontend_dist,backend_static,backend_media}
+sudo chmod -R 777 /var/www/chinese_poker/shared
+sudo chmod -R 777 /var/www/holdem/shared
 
 echo "=== [3/5] Deploying nginx-proxy files ==="
-mkdir -p /var/www/nginx-proxy
-cp -r /var/www/chinese_poker/deploy/nginx-proxy/* /var/www/nginx-proxy/
-chmod +x /var/www/nginx-proxy/init-letsencrypt.sh
+sudo mkdir -p /var/www/nginx-proxy
+sudo cp -r /var/www/chinese_poker/deploy/nginx-proxy/* /var/www/nginx-proxy/
+sudo chmod +x /var/www/nginx-proxy/init-letsencrypt.sh
 
 echo "=== [4/5] Migrating existing SSL certificates ==="
 # 旧 certbot volume から nginx-proxy の volume へ証明書を移行
