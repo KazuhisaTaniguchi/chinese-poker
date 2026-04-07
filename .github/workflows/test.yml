@@ -1,4 +1,4 @@
-name: CI Tests
+name: CI/CD
 
 on:
   push:
@@ -53,3 +53,21 @@ jobs:
         run: |
           cd frontend
           npm run test:run
+
+  # ===== 本番デプロイ =====
+  deploy:
+    name: Deploy to Production
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /var/www/chinese_poker
+            bash deploy/deploy.sh
