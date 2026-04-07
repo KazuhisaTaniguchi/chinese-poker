@@ -743,3 +743,74 @@ class TestGameAPIPlay(APITestCase):
             format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class TestGameAPIUnauthenticated(APITestCase):
+    """セッション切れ（未認証）でもゲーム操作ができることを確認するテスト"""
+
+    def setUp(self):
+        # ゲームを作成してから未認証クライアントに切り替え
+        response = self.client.post(
+            '/api/games/', {'player_names': ['Alice', 'Bob']}, format='json'
+        )
+        self.game_id = response.data['id']
+        self.game_data = response.data
+        self.current_idx = response.data['current_player_index']
+        # セッション切れをシミュレート（認証情報をクリア）
+        self.client.force_authenticate(user=None)
+        self.client.credentials()
+
+    def _current_player(self, data=None):
+        data = data or self.game_data
+        return next(p for p in data['players'] if p['order'] == self.current_idx)
+
+    def test_game_detail_without_auth(self):
+        """未認証でもゲーム状態取得が可能"""
+        response = self.client.get(f'/api/games/{self.game_id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], self.game_id)
+
+    def test_place_card_without_auth(self):
+        """未認証でもカード配置が可能"""
+        player = self._current_player()
+        first_card = player['hand'][0]
+        response = self.client.post(
+            f'/api/games/{self.game_id}/place/',
+            {'card_id': first_card['id'], 'row': 'bottom'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_undo_place_without_auth(self):
+        """未認証でもアンドゥが可能"""
+        player = self._current_player()
+        first_card = player['hand'][0]
+        self.client.post(
+            f'/api/games/{self.game_id}/place/',
+            {'card_id': first_card['id'], 'row': 'bottom'},
+            format='json'
+        )
+        response = self.client.post(
+            f'/api/games/{self.game_id}/undo/',
+            {'row': 'bottom'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_end_game_without_auth(self):
+        """未認証でもゲーム終了が可能"""
+        response = self.client.post(f'/api/games/{self.game_id}/end/', format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['phase'], 'game_over')
+
+    def test_next_round_without_auth(self):
+        """未認証でも次ラウンドへの進行が可能"""
+        # 全員のボードを完成させてからラウンド結果フェーズへ移行するのは複雑なので、
+        # エンドポイントが 403 を返さない（400 または 200）ことだけ確認する
+        response = self.client.post(f'/api/games/{self.game_id}/next-round/', format='json')
+        self.assertNotEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_confirm_turn_switch_without_auth(self):
+        """未認証でもターン切替確認が可能（ゲーム状態次第で 400 になることもある）"""
+        response = self.client.post(f'/api/games/{self.game_id}/confirm-turn/', format='json')
+        self.assertNotEqual(response.status_code, status.HTTP_403_FORBIDDEN)

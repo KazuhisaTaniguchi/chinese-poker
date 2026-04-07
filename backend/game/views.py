@@ -72,6 +72,7 @@ def game_list(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def game_detail(request, game_id):
     """ゲーム状態取得"""
     try:
@@ -83,6 +84,7 @@ def game_detail(request, game_id):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def place_card(request, game_id):
     """カード配置"""
     try:
@@ -134,6 +136,7 @@ def place_card(request, game_id):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def undo_place(request, game_id):
     """配置を元に戻す"""
     try:
@@ -264,6 +267,7 @@ def _finish_round(game):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def confirm_placement(request, game_id):
     """配置確定 → ターン進行 (パイナップルOFC + ファンタジーランド同時プレイ対応)"""
     try:
@@ -438,6 +442,7 @@ def unconfirm_fl(request, game_id):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def confirm_turn_switch(request, game_id):
     """ターン切替確認 → プレイ画面へ"""
     try:
@@ -455,6 +460,7 @@ def confirm_turn_switch(request, game_id):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def next_round(request, game_id):
     """次ラウンド開始 (ファンタジーランド対応)"""
     try:
@@ -525,6 +531,7 @@ def next_round(request, game_id):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def end_game(request, game_id):
     """ゲーム終了"""
     try:

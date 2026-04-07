@@ -30,6 +30,10 @@ export default function GamePlayPage({ user }) {
   const fetchState = useCallback(async () => {
     try {
       const data = await authApi.getRoomState(roomId);
+      // my_token が返ってきたら localStorage に保存（セッション切れ後のフォールバック）
+      if (data.my_token) {
+        localStorage.setItem(`room_${roomId}_token`, data.my_token);
+      }
       if (data.game_started && data.game) {
         const game = data.game;
         setMyPlayerIndex(data.my_player_index);

@@ -8,7 +8,23 @@ const API_BASE = import.meta.env.VITE_API_BASE
   ? `${import.meta.env.VITE_API_BASE}/api`
   : "/api";
 
+/** localStorage から現在のルームのトークンを取得（セッション切れ時のフォールバック） */
+function getRoomToken(): string | null {
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("room_") && key.endsWith("_token")) {
+      return localStorage.getItem(key);
+    }
+  }
+  return null;
+}
+
 async function request(method, path, body = null) {
+  // セッション切れ後のフォールバック: トークンをクエリパラメータに付加
+  const token = getRoomToken();
+  const tokenParam = token ? `?token=${token}` : "";
+  const fullPath = `${API_BASE}${path}${tokenParam}`;
+
   const options = {
     method,
     headers: {
@@ -30,7 +46,7 @@ async function request(method, path, body = null) {
     options.body = JSON.stringify(body);
   }
 
-  const response = await fetch(`${API_BASE}${path}`, options);
+  const response = await fetch(fullPath, options);
 
   if (!response.ok) {
     const error = await response

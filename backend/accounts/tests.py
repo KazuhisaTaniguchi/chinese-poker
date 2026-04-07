@@ -199,3 +199,76 @@ class TestRoomAPI(APITestCase):
         self.client.force_authenticate(user=None)
         response = self.client.get('/api/auth/rooms/')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class TestRoomStateTokenAuth(APITestCase):
+    """room_state のトークン認証（セッション切れ対応）テスト"""
+
+    def setUp(self):
+        self.host = User.objects.create_user(username='host', password='pass1234')
+        self.client.force_authenticate(user=self.host)
+        response = self.client.post('/api/auth/rooms/', {
+            'room_name': 'TestRoom',
+            'player_names': ['Alice', 'Bob'],
+        }, format='json')
+        self.room_id = response.data['id']
+        self.host_slot_token = response.data['slots'][0]['token']
+        self.guest_slot_token = response.data['slots'][1]['token']
+
+    def test_room_state_returns_my_token_for_host(self):
+        """ログイン済みホストの room_state に my_token が含まれる"""
+        response = self.client.get(f'/api/auth/rooms/{self.room_id}/state/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('my_token', response.data)
+        self.assertEqual(response.data['my_token'], self.host_slot_token)
+
+    def test_room_state_returns_my_token_for_guest(self):
+        """トークン参加ゲストの room_state にも my_token が含まれる"""
+        self.client.force_authenticate(user=None)
+        self.client.post(
+            f'/api/auth/rooms/{self.room_id}/join/{self.guest_slot_token}/',
+            format='json'
+        )
+        response = self.client.get(
+            f'/api/auth/rooms/{self.room_id}/state/?token={self.guest_slot_token}'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('my_token', response.data)
+        self.assertEqual(response.data['my_token'], self.guest_slot_token)
+
+    def test_room_state_accessible_via_token_without_session(self):
+        """セッションなし（未認証）でもトークンがあれば room_state にアクセスできる"""
+        self.client.force_authenticate(user=None)
+        response = self.client.get(
+            f'/api/auth/rooms/{self.room_id}/state/?token={self.host_slot_token}'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['my_player_index'], 0)
+
+    def test_room_state_host_identified_via_token(self):
+        """トークン経由で特定したホストは is_host=True になる"""
+        self.client.force_authenticate(user=None)
+        # ゲームを開始してから is_host を確認する
+        self.client.force_authenticate(user=self.host)
+        self.client.post(f'/api/auth/rooms/{self.room_id}/start/', format='json')
+        self.client.force_authenticate(user=None)
+        response = self.client.get(
+            f'/api/auth/rooms/{self.room_id}/state/?token={self.host_slot_token}'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data.get('is_host'))
+
+    def test_room_state_without_auth_and_token_returns_403(self):
+        """認証もトークンもない場合は 403"""
+        self.client.force_authenticate(user=None)
+        response = self.client.get(f'/api/auth/rooms/{self.room_id}/state/')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_room_state_invalid_token_returns_403(self):
+        """無効なトークンは 403"""
+        self.client.force_authenticate(user=None)
+        fake_token = '00000000-0000-0000-0000-000000000000'
+        response = self.client.get(
+            f'/api/auth/rooms/{self.room_id}/state/?token={fake_token}'
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

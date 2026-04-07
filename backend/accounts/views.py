@@ -249,15 +249,22 @@ def room_state(request, room_id):
             token = request.session.get(f'room_{room_id}_token')
         if token:
             my_slot = room.slots.filter(token=token).first()
+            # トークンで特定した場合もホスト判定を行う
+            if my_slot and my_slot.user and room.host == my_slot.user:
+                is_host = True
 
     if not my_slot:
         return Response({'error': 'このルームの参加者ではありません'}, status=status.HTTP_403_FORBIDDEN)
+
+    # 自分のスロットトークン（セッション切れ後のフォールバック用）
+    my_token = str(my_slot.token)
 
     if not room.game:
         return Response({
             'game_started': False,
             'room': RoomSerializer(room).data,
             'my_player_index': my_slot.order,
+            'my_token': my_token,
         })
 
     from game.serializers import GameSerializer
@@ -275,4 +282,5 @@ def room_state(request, room_id):
         'is_host': is_host,
         'room_id': str(room.id),
         'slots': slots_data,
+        'my_token': my_token,
     })
