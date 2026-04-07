@@ -17,6 +17,7 @@ echo "=== [2/6] Building backend image ==="
 $COMPOSE build backend
 
 echo "=== [3/6] Building frontend (vite build) ==="
+$COMPOSE --profile build build frontend-builder
 $COMPOSE --profile build run --rm frontend-builder
 
 echo "=== [4/6] Running database migrations ==="
