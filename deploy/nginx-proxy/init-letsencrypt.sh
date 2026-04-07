@@ -18,7 +18,7 @@ CONF_DIR="nginx/conf.d"
 
 echo "=== Step 1: Enable bootstrap nginx config (HTTP only) ==="
 for f in "$CONF_DIR"/*.conf; do
-    [ -f "$f" ] && [ "$(basename "$f")" != "_bootstrap.conf" ] && mv "$f" "${f}.bak"
+    [ -f "$f" ] && [ "$(basename "$f")" != "_bootstrap.conf" ] && mv -f "$f" "${f}.bak"
 done
 cp "${CONF_DIR}/_bootstrap.conf" "${CONF_DIR}/bootstrap.conf"
 
