@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import PlayerBoard from './PlayerBoard';
 import OpponentPreview from './OpponentPreview';
 import HandArea from './HandArea';
@@ -30,6 +30,14 @@ export default function GameBoard({ state, actions, isPlacementDone, canPlay = t
 
   // ボードカード選択状態 { card, row }
   const [selectedBoardCard, setSelectedBoardCard] = useState(null);
+
+  // FL中の相手エリア表示トグル（デフォルト非表示）
+  const [showOpponents, setShowOpponents] = useState(false);
+  useEffect(() => {
+    if (isFantasyland) {
+      setShowOpponents(false);
+    }
+  }, [isFantasyland]);
 
   const handleUndo = () => {
     const rows = ['bottom', 'middle', 'top'];
@@ -125,10 +133,18 @@ export default function GameBoard({ state, actions, isPlacementDone, canPlay = t
           <span className="fl-text">
             {cardsDealt}枚から13枚を配置！（{discardCount}枚捨て）
           </span>
+          <button
+            className="opponent-toggle-btn"
+            onClick={() => setShowOpponents(prev => !prev)}
+          >
+            対戦相手 {showOpponents ? '▲' : '▼'}
+          </button>
         </div>
       )}
 
-      <OpponentPreview players={opponents} dealerIndex={state.dealerIndex} />
+      <div className={`opponent-collapse ${isFantasyland && canPlay ? (showOpponents ? 'expanded' : 'collapsed') : 'expanded'}`}>
+        <OpponentPreview players={opponents} dealerIndex={state.dealerIndex} />
+      </div>
 
       <PlayerBoard
         player={currentPlayer}

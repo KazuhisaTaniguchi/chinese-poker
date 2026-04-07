@@ -593,7 +593,7 @@
 .fantasyland-banner {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: var(--sp-sm);
     padding: var(--sp-sm) var(--sp-lg);
     background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
@@ -605,6 +605,37 @@
 
 .fl-icon {
     font-size: 1.2rem;
+}
+
+.opponent-toggle-btn {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.5);
+    color: #5d4037;
+    margin-left: auto;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.opponent-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+.opponent-collapse {
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+.opponent-collapse.expanded {
+    max-height: 300px;
+    opacity: 1;
+}
+
+.opponent-collapse.collapsed {
+    max-height: 0;
+    opacity: 0;
 }
 
 .fl-text {
