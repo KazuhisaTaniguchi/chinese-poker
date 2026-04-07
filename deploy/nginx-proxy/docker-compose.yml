@@ -1,0 +1,47 @@
+services:
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # nginx config
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/options-ssl-nginx.conf:/etc/nginx/options-ssl-nginx.conf:ro
+      # SSL certs
+      - certbot_etc:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+      # OFC project assets
+      - /var/www/chinese_poker/shared/frontend_dist:/var/www/ofc/frontend:ro
+      - /var/www/chinese_poker/shared/backend_static:/var/www/ofc/static:ro
+      - /var/www/chinese_poker/shared/backend_media:/var/www/ofc/media:ro
+      # Holdem project assets
+      - /var/www/holdem/shared/frontend_dist:/var/www/holdem/frontend:ro
+      - /var/www/holdem/shared/backend_static:/var/www/holdem/static:ro
+      - /var/www/holdem/shared/backend_media:/var/www/holdem/media:ro
+    networks:
+      - proxy_net
+
+  certbot:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    volumes:
+      - certbot_etc:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    entrypoint: >
+      sh -c "trap exit TERM;
+             while :;
+             do certbot renew --webroot -w /var/www/certbot --quiet;
+                sleep 12h & wait $${!};
+             done"
+    networks:
+      - proxy_net
+
+networks:
+  proxy_net:
+    external: true
+
+volumes:
+  certbot_etc:
+  certbot_www:

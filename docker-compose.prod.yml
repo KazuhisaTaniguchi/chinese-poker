@@ -1,5 +1,5 @@
 services:
-  db:
+  ofc_db:
     image: postgres:16-alpine
     restart: unless-stopped
     env_file: ./backend/.env.prod
@@ -15,68 +15,41 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
+  ofc_backend:
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
+    container_name: ofc_backend
     restart: unless-stopped
     env_file: ./backend/.env.prod
     environment:
-      - DB_HOST=db
+      - DB_HOST=ofc_db
       - DB_PORT=5432
     volumes:
-      - backend_static:/app/staticfiles
-      - backend_media:/app/media
+      - ./shared/backend_static:/app/staticfiles
+      - ./shared/backend_media:/app/media
       - backend_logs:/app/logs
     expose:
       - "8000"
     depends_on:
-      db:
+      ofc_db:
         condition: service_healthy
+    networks:
+      - default
+      - proxy_net
 
-  frontend-builder:
+  ofc_frontend_builder:
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod
     profiles: ["build"]
     volumes:
-      - frontend_dist:/output
-
-  nginx:
-    image: nginx:alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./deploy/nginx/options-ssl-nginx.conf:/etc/nginx/options-ssl-nginx.conf:ro
-      - frontend_dist:/usr/share/nginx/html:ro
-      - backend_static:/var/www/backend/staticfiles:ro
-      - backend_media:/var/www/backend/media:ro
-      - certbot_etc:/etc/letsencrypt:ro
-      - certbot_www:/var/www/certbot:ro
-    depends_on:
-      - backend
-
-  certbot:
-    image: certbot/certbot:latest
-    restart: unless-stopped
-    volumes:
-      - certbot_etc:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    entrypoint: >
-      sh -c "trap exit TERM;
-             while :;
-             do certbot renew --webroot -w /var/www/certbot --quiet;
-                sleep 12h & wait $${!};
-             done"
+      - ./shared/frontend_dist:/output
 
 volumes:
   postgres_data:
-  backend_static:
-  backend_media:
   backend_logs:
-  frontend_dist:
-  certbot_etc:
-  certbot_www:
+
+networks:
+  proxy_net:
+    external: true
