@@ -295,7 +295,7 @@ docker compose -f docker-compose.prod.yml up -d
 ## SSH 接続
 
 ```bash
-ssh -p 2222 deploy@85.131.253.168
+ssh -p 2222 deploy@85.131.253.???
 
 # ~/.ssh/config に登録すると便利
 # Host xserver-vps
