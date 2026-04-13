@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { checkFoul, calculateRoyalties } from '../game/scoring';
 import { evaluateHand, getHandName, compareHands } from '../game/hand';
+import CardComponent from './CardComponent';
+import { ROW_LIMITS } from '../game/rules';
 
 const ROW_LABELS = { top: 'Top', middle: 'Middle', bottom: 'Bottom' };
 
@@ -68,7 +70,7 @@ function getMatchupDetails(p1, p2) {
   };
 }
 
-export default function RoundResult({ players, roundScores, onNextRound, onEndGame, gameRound }) {
+export default function RoundResult({ players, roundScores, onNextRound, onEndGame, gameRound, myPlayerIndex }) {
   const [showDetail, setShowDetail] = useState(true);
 
   const sorted = players
@@ -92,6 +94,39 @@ export default function RoundResult({ players, roundScores, onNextRound, onEndGa
     }
   }
 
+  // マルチプレイヤー判定
+  const isMultiplayer = myPlayerIndex != null;
+  const myPlayer = isMultiplayer ? players[myPlayerIndex] : null;
+  const myAction = myPlayer?.readyNextAction ?? null;
+
+  const nextCount = players.filter(p => p.readyNextAction === 'next').length;
+  const endCount = players.filter(p => p.readyNextAction === 'end').length;
+  const total = players.length;
+
+  function getReadyBadge(player) {
+    if (!isMultiplayer) return null;
+    if (player.readyNextAction === 'next') return <span className="result-ready-badge ready-next">▶ 次ラウンド</span>;
+    if (player.readyNextAction === 'end') return <span className="result-ready-badge ready-end">🏁 ゲーム終了</span>;
+    return <span className="result-ready-badge ready-waiting">⏳</span>;
+  }
+
+  function getNextButtonLabel() {
+    if (!isMultiplayer) return '次のラウンドへ';
+    if (myAction === 'next') return `⏳ 待機中 (${nextCount}/${total})`;
+    if (myAction === 'end') return '▶ 次のラウンドへ (切替)';
+    return '次のラウンドへ';
+  }
+
+  function getEndButtonLabel() {
+    if (!isMultiplayer) return 'ゲーム終了';
+    if (myAction === 'end') return `⏳ 待機中 (${endCount}/${total})`;
+    if (myAction === 'next') return '🏁 ゲーム終了 (切替)';
+    return 'ゲーム終了';
+  }
+
+  const nextDisabled = isMultiplayer && myAction === 'next';
+  const endDisabled = isMultiplayer && myAction === 'end';
+
   return (
     <div className="result-screen">
       <h2>ラウンド {gameRound} 結果</h2>
@@ -107,6 +142,7 @@ export default function RoundResult({ players, roundScores, onNextRound, onEndGa
                 <span className="result-player-name">{player.name}</span>
                 {foul && <span className="foul-badge">ファウル</span>}
                 {player.inFantasyland && <span className="fl-badge">🌟 FL</span>}
+                {getReadyBadge(player)}
                 {!foul && (
                   <div className="result-hand-summary">
                     {['top', 'middle', 'bottom'].map(row => {
@@ -139,6 +175,46 @@ export default function RoundResult({ players, roundScores, onNextRound, onEndGa
 
       {showDetail && (
         <div className="matchup-details">
+          {/* 全員のボード */}
+          <h3>全員のボード</h3>
+          <div className="all-boards-list">
+            {players.map(player => {
+              const foul = checkFoul(player.board);
+              return (
+                <div key={player.id} className="all-boards-player">
+                  <div className="all-boards-header">
+                    <span className="result-player-name">{player.name}</span>
+                    {foul && <span className="foul-badge">ファウル</span>}
+                    {player.inFantasyland && <span className="fl-badge">🌟 FL</span>}
+                    <span className="result-total-score">{player.totalScore} pts</span>
+                  </div>
+                  <div className="board-rows">
+                    {['top', 'middle', 'bottom'].map(row => {
+                      const cards = player.board[row] || [];
+                      const limit = ROW_LIMITS[row];
+                      const handEval = cards.length === limit ? evaluateHand(cards) : null;
+                      return (
+                        <div key={row} className="board-row">
+                          <div className="row-header">
+                            <span className="row-label">{ROW_LABELS[row]}</span>
+                            {handEval && (
+                              <span className="hand-name-badge">{getHandName(handEval)}</span>
+                            )}
+                          </div>
+                          <div className="row-cards">
+                            {Array.from({ length: limit }).map((_, i) => (
+                              <CardComponent key={i} card={cards[i] || null} />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
           <h3>対戦詳細</h3>
           {matchups.map(({ p1, p2, details }, idx) => (
             <div key={idx} className="matchup-card">
@@ -216,12 +292,22 @@ export default function RoundResult({ players, roundScores, onNextRound, onEndGa
       </div>
 
       <div className="result-buttons">
-        <button className="btn btn-primary" onClick={onNextRound} id="next-round-btn">
-          次のラウンドへ
+        <button
+          className="btn btn-primary"
+          onClick={onNextRound}
+          id="next-round-btn"
+          disabled={nextDisabled}
+        >
+          {getNextButtonLabel()}
         </button>
         {!hasFantasyland && (
-          <button className="btn btn-danger" onClick={onEndGame} id="end-game-btn">
-            ゲーム終了
+          <button
+            className="btn btn-danger"
+            onClick={onEndGame}
+            id="end-game-btn"
+            disabled={endDisabled}
+          >
+            {getEndButtonLabel()}
           </button>
         )}
       </div>

@@ -57,6 +57,10 @@ class Player(models.Model):
     fantasyland_bonus = models.IntegerField(default=0)  # 0,9,10,11,12
     locked_board = models.JSONField(default=dict)  # ターン開始時のボード状態
     fl_saved_hand = models.JSONField(default=list)  # FL確定時の捨て札を保存（キャンセル用）
+    ready_next_action = models.CharField(
+        max_length=10, null=True, blank=True, default=None,
+        choices=[('next', '次ラウンド'), ('end', 'ゲーム終了')],
+    )
 
     class Meta:
         ordering = ['order']

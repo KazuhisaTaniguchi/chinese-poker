@@ -1081,6 +1081,56 @@
     max-width: 280px;
 }
 
+/* ----- Ready badge (round result) ----- */
+.result-ready-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.result-ready-badge.ready-next {
+    background: rgba(52, 199, 89, 0.18);
+    color: #1a7a34;
+}
+
+.result-ready-badge.ready-end {
+    background: rgba(255, 59, 48, 0.15);
+    color: #c0392b;
+}
+
+.result-ready-badge.ready-waiting {
+    background: rgba(142, 142, 147, 0.15);
+    color: var(--gray);
+}
+
+/* ----- All boards section ----- */
+.all-boards-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-lg);
+    margin-bottom: var(--sp-lg);
+}
+
+.all-boards-player {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--sp-sm) var(--sp-md);
+    background: var(--surface);
+}
+
+.all-boards-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: var(--sp-sm);
+    font-size: 0.9rem;
+}
+
 /* ----- Foul indicator ----- */
 .foul-badge {
     display: inline-flex;

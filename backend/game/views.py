@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -249,6 +250,7 @@ def _finish_round(game):
         p.in_fantasyland = False
         p.fantasyland_bonus = 0
         p.fl_saved_hand = []
+        p.ready_next_action = None
 
         if not check_foul(p.get_board()):
             bonus = 0
@@ -468,6 +470,31 @@ def next_round(request, game_id):
     except Game.DoesNotExist:
         return Response({'error': 'ゲームが見つかりません'}, status=status.HTTP_404_NOT_FOUND)
 
+    # マルチプレイヤー (Room 紐付き) の場合は全員レディアップを待つ
+    try:
+        _ = game.room
+        is_multiplayer = True
+    except ObjectDoesNotExist:
+        is_multiplayer = False
+
+    if is_multiplayer:
+        req_player_index = request.data.get('player_index')
+        if req_player_index is None:
+            return Response({'error': 'player_index が必要です'}, status=status.HTTP_400_BAD_REQUEST)
+        player = game.players.filter(order=req_player_index).first()
+        if not player:
+            return Response({'error': 'プレイヤーが見つかりません'}, status=status.HTTP_400_BAD_REQUEST)
+
+        player.ready_next_action = 'next'
+        player.save()
+
+        if not all(p.ready_next_action == 'next' for p in game.players.all()):
+            return Response(GameSerializer(game).data)
+
+        for p in game.players.all():
+            p.ready_next_action = None
+            p.save()
+
     # デッキリセット
     deck = shuffle_deck(create_deck())
     # ファンタジーランドプレイヤーがいない場合のみディーラーボタンを回す
@@ -538,6 +565,31 @@ def end_game(request, game_id):
         game = Game.objects.get(id=game_id)
     except Game.DoesNotExist:
         return Response({'error': 'ゲームが見つかりません'}, status=status.HTTP_404_NOT_FOUND)
+
+    # マルチプレイヤー (Room 紐付き) の場合は全員レディアップを待つ
+    try:
+        _ = game.room
+        is_multiplayer = True
+    except ObjectDoesNotExist:
+        is_multiplayer = False
+
+    if is_multiplayer:
+        req_player_index = request.data.get('player_index')
+        if req_player_index is None:
+            return Response({'error': 'player_index が必要です'}, status=status.HTTP_400_BAD_REQUEST)
+        player = game.players.filter(order=req_player_index).first()
+        if not player:
+            return Response({'error': 'プレイヤーが見つかりません'}, status=status.HTTP_400_BAD_REQUEST)
+
+        player.ready_next_action = 'end'
+        player.save()
+
+        if not all(p.ready_next_action == 'end' for p in game.players.all()):
+            return Response(GameSerializer(game).data)
+
+        for p in game.players.all():
+            p.ready_next_action = None
+            p.save()
 
     game.phase = 'game_over'
     game.save()

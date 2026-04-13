@@ -106,11 +106,13 @@ export function confirmTurnSwitch(gameId) {
 }
 
 // 次ラウンド
-export function nextRound(gameId) {
-  return request("POST", `/games/${gameId}/next-round/`);
+export function nextRound(gameId, playerIndex?) {
+  const body = playerIndex != null ? { player_index: playerIndex } : null;
+  return request("POST", `/games/${gameId}/next-round/`, body);
 }
 
 // ゲーム終了
-export function endGame(gameId) {
-  return request("POST", `/games/${gameId}/end/`);
+export function endGame(gameId, playerIndex?) {
+  const body = playerIndex != null ? { player_index: playerIndex } : null;
+  return request("POST", `/games/${gameId}/end/`, body);
 }

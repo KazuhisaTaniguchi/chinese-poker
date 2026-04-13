@@ -172,18 +172,18 @@ export default function GamePlayPage({ user }) {
     nextRound: useCallback(async () => {
       if (!gameState?.gameId) return;
       try {
-        await api.nextRound(gameState.gameId);
+        await api.nextRound(gameState.gameId, myPlayerIndex);
         await fetchState();
       } catch (err) { console.error(err); }
-    }, [gameState?.gameId, fetchState]),
+    }, [gameState?.gameId, myPlayerIndex, fetchState]),
 
     endGame: useCallback(async () => {
       if (!gameState?.gameId) return;
       try {
-        await api.endGame(gameState.gameId);
+        await api.endGame(gameState.gameId, myPlayerIndex);
         await fetchState();
       } catch (err) { console.error(err); }
-    }, [gameState?.gameId, fetchState]),
+    }, [gameState?.gameId, myPlayerIndex, fetchState]),
 
     newGame: useCallback(() => {
       window.location.href = '/lobby';
@@ -296,6 +296,7 @@ export default function GamePlayPage({ user }) {
           gameRound={gameState.gameRound}
           onNextRound={actions.nextRound}
           onEndGame={actions.endGame}
+          myPlayerIndex={myPlayerIndex}
         />
       </>
     );
